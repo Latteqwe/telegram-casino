@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Rofl Casino — Mini App</title>
 <link rel="icon" href="images/slot.png" />
 <style>
@@ -148,8 +148,8 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   const TOTAL_SPIN_DURATION = 7000; // ms (всего)
   const STRIP_REPEATS = 8;
   const MAX_MOTION_BLUR = 18;
-  const BLUR_RAMP_START_MS = 200;
-  const BLUR_RAMP_END_MS = 1000;
+  const BLUR_RAMP_START_MS = 250; // <--- старт motion blur (250 ms)
+  const BLUR_RAMP_END_MS = 1000;  // конец blur (1000 ms)
   const START_SLOW_FRAC = 0.12; // как просил
   const MAX_SCALE_BOOST = 1.28;
   const SCALE_EASE = 0.16;
@@ -344,16 +344,17 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
     // DRAW STRONGER GLOW (shadow stroke) — draw before reel so reel is on top
     if (r.spinning){
-      const glowStrength = Math.max(0.02, (scale - 3) / (MAX_SCALE_BOOST - 6));
+      // corrected glowStrength formula & stronger but compact glow
+      const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
       const baseSize = Math.max(reelW, reelH);
-      const glowRadius = baseSize * (0.5 + glowStrength * 0.3) * scale;
+      const glowRadius = baseSize * (0.45 + glowStrength * 0.3) * scale;
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
-      // **увеличенное свечение**
-      ctx.shadowBlur = Math.max(12, glowRadius * 3);              // <- сильнее blur
-      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 3);     // <- более насыщенная альфа
-      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.02);
-      ctx.lineWidth = Math.max(12, glowRadius * 1);               // <- толще stroke чтобы glow был заметнее
+      // **усиленное, но аккуратное свечение**
+      ctx.shadowBlur = Math.max(10, glowRadius * 0.9);               // усиленный blur, но не чрезмерный
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.92);     // альфа <= 1
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.04);
+      ctx.lineWidth = Math.max(8, glowRadius * 0.22);                // толще stroke для заметности
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
       ctx.stroke();
       // reset
@@ -706,6 +707,3 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 </script>
 </body>
 </html>
-
-
-

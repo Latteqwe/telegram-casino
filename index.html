@@ -26,10 +26,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 .top-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px}
 #balance{padding:10px 16px;border-radius:10px;background:var(--panel-bg);font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,0.5)}
 #message{flex:1;margin-left:12px;text-align:center;font-weight:600;min-height:22px;color:var(--text)}
+/* Make reel-area visible overflow so big glow isn't clipped */
 .reel-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:18px;width:100%;max-width:960px;box-sizing:border-box;height:260px;overflow:visible}
 @media (max-width:520px){ .reel-wrap{height:200px} #logo{width:38px} h1{font-size:16px} }
-/* canvas background now transparent to remove visible rectangle */
-#reelsCanvas{width:100%;height:100%;display:block;border-radius:12px;background:transparent}
+/* canvas transparent background, absolutely positioned (we'll offset it via JS) */
+#reelsCanvas{display:block;background:transparent;position:absolute;left:0;top:0;will-change:transform}
 .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
 .action-button{padding:12px 18px;font-weight:800;border-radius:12px;border:none;cursor:pointer;background: linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;box-shadow: 0 8px 22px rgba(10,30,50,0.6);transition: box-shadow 180ms ease, transform 120ms ease;position:relative;}
 @keyframes breath {0% { transform: translateY(0) scale(1); box-shadow: 0 14px 32px rgba(20,60,100,0.30), 0 0 18px var(--glow-color); }50% { transform: translateY(-2px) scale(1.04); box-shadow: 0 36px 72px rgba(20,60,100,0.42), 0 0 44px var(--glow-color);}100%{transform:translateY(0) scale(1);box-shadow:0 14px 32px rgba(20,60,100,0.30),0 0 18px var(--glow-color)}}
@@ -69,7 +70,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       </div>
 
       <div class="reel-wrap" id="reelArea" style="margin-top:14px;">
-        <canvas id="reelsCanvas"></canvas>
+        <canvas id="reelsCanvas" width="800" height="260"></canvas>
       </div>
 
       <div class="controls" style="margin-top:14px;">
@@ -135,8 +136,10 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
+/* Исправленный рендер: canvas absolute + внутр. pad + корректные координаты,
+   возвращено яркое тематическое свечение, увеличен clip-padding (OUTER_PAD)
+   чтобы символы/blur не обрезались. Джекпот 1.5%, пара 35%. */
 (function(){
-  // ---------------- config ----------------
   const REEL_COUNT = 3;
   const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
   const TOTAL_SPIN_DURATION = 7000;
@@ -145,9 +148,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   const START_SLOW_FRAC = 0.08;
   const MAX_SCALE_BOOST = 1.24;
   const SCALE_EASE = 0.16;
-  const OUTER_PAD = 14; // расширение клипа вокруг барабана, чтобы не резало символы
 
-  // ---------------- DOM ----------------
   const reelArea = document.getElementById('reelArea');
   const canvas = document.getElementById('reelsCanvas');
   const ctx = canvas.getContext('2d', { alpha: true });
@@ -174,9 +175,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   try { clickSound.volume=0.28; winSound.volume=0.95; loseSound.volume=0.4; jackpotSound.volume=0.9; } catch(e){}
 
-  // ---------------- layout ----------------
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let W=0,H=0,reelW=0,reelH=0,reelX=[];
+  const PAD = 56;       // canvas extra margin so glow is never clipped
+  const OUTER_PAD = 28; // clip extension to avoid symbol clipping
+
   function computeLayout(){
     const rect = reelArea.getBoundingClientRect();
     W = Math.max(320, rect.width);
@@ -189,27 +192,27 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     reelX = [];
     for (let i=0;i<REEL_COUNT;i++) reelX.push(Math.round(startX + i*(reelW + gap)));
   }
+
   function resize(){
     computeLayout();
-    // give canvas a little extra pixel room to avoid clipping of glow on edges
-    const extra = 120; // safety margin
-    canvas.width = Math.round((W + extra) * dpr);
-    canvas.height = Math.round((H + extra) * dpr);
-    canvas.style.width = (W + extra) + 'px';
-    canvas.style.height = (H + extra) + 'px';
-    // position canvas centrally inside reelArea (offset)
-    canvas.style.position = 'relative';
-    canvas.style.left = -(extra/2) + 'px';
-    canvas.style.top = -(extra/2) + 'px';
-
+    // canvas is slightly larger than reelArea by PAD on each side; position absolute with negative offsets
+    const canvasW = Math.round((W + PAD*2) * dpr);
+    const canvasH = Math.round((H + PAD*2) * dpr);
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    canvas.style.width = (W + PAD*2) + 'px';
+    canvas.style.height = (H + PAD*2) + 'px';
+    canvas.style.position = 'absolute';
+    canvas.style.left = -PAD + 'px';
+    canvas.style.top = -PAD + 'px';
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.clearRect(0,0,W,H);
+    ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
   }
   window.addEventListener('resize', resize);
 
-  // ---------------- preload symbols ----------------
+  // preload symbols
   const SYMBOLS = [];
   for (let i=0;i<SYMBOL_FILES.length;i++){
     const img = new Image();
@@ -217,7 +220,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     SYMBOLS.push({ img, name: SYMBOL_FILES[i].split('/').pop().split('.')[0] });
   }
 
-  // ---------------- reel model ----------------
   class Reel {
     constructor(i){
       this.i = i;
@@ -257,29 +259,28 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''; }
 
-  // ---------------- draw loop ----------------
   function draw(){
-    // clear whole extended canvas
+    // clear whole canvas
     ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
 
     const symbolH = Math.round(reelH * 0.86);
-    const centerY = H/2 + (canvas.height/dpr - H)/2; // account for extra offset
+    const offsetX = PAD;
+    const offsetY = PAD;
+    const centerY = offsetY + H/2;
     const glowColorCss = cssVar('--glow-color') || 'rgba(140,170,223,0.46)';
 
     for (let ri=0; ri<REEL_COUNT; ri++){
       const r = reels[ri];
-      // shift X by extra/2 offset (canvas was moved left/up)
-      const extra = (canvas.width/dpr - W);
-      const x = reelX[ri] + extra/2;
+      const x = offsetX + reelX[ri];
 
-      // update spin offsets
+      // update spin
       if (r.spinning){
         const now = performance.now();
         let tRaw = (now - r.startTime) / Math.max(1, r.duration);
         tRaw = Math.max(0, Math.min(1, tRaw));
         const delay = START_SLOW_FRAC;
         let tAdj = tRaw < delay ? 0 : (tRaw - delay) / (1 - delay);
-        const eased = 1 - Math.pow(1 - tAdj, 3); // ease out cubic
+        const eased = 1 - Math.pow(1 - tAdj, 3);
         r.offset = r.startOffset + (r.targetOffset - r.startOffset) * eased;
         if (tRaw >= 1 && !r.onCompleteCalled){
           r.spinning = false; r.onCompleteCalled = true;
@@ -289,11 +290,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
         }
       }
 
-      // smooth scale
+      // scale smoothing
       const targetScale = r.spinning ? MAX_SCALE_BOOST : 1.0;
       r.visualScale += (targetScale - r.visualScale) * SCALE_EASE;
 
-      // motion blur intensity
+      // motion blur
       let motionBlur = 0;
       if (r.spinning){
         const now = performance.now();
@@ -302,41 +303,38 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
         motionBlur = (1 - phase) * MAX_MOTION_BLUR;
       }
 
-      // ---------- OUTER GLOW (animated with visualScale) ----------
-      const glowBaseBlur = 42; // base
-      const glowScaleFactor = (r.visualScale - 1) / (MAX_SCALE_BOOST - 1); // 0..1
-      const glowBlur = glowBaseBlur * (0.6 + 1.4 * Math.max(0, glowScaleFactor)); // dynamic
-      const glowAlpha = 0.28 + 0.6 * Math.max(0, glowScaleFactor); // dynamic alpha
+      // glow — animated with visualScale
+      const glowBaseBlur = 42;
+      const glowScaleFactor = (r.visualScale - 1) / (MAX_SCALE_BOOST - 1);
+      const glowBlur = glowBaseBlur * (0.6 + 1.4 * Math.max(0, glowScaleFactor));
+      const glowAlpha = 0.28 + 0.6 * Math.max(0, glowScaleFactor);
 
       ctx.save();
       ctx.shadowColor = glowColorCss;
       ctx.shadowBlur = glowBlur;
       ctx.globalAlpha = glowAlpha;
-      // draw a transparent rounded rect only to cast shadow (no dark fill)
-      ctx.fillStyle = 'rgba(0,0,0,0)';
+      // Use almost-transparent fill to make shadow render reliably
+      ctx.fillStyle = 'rgba(255,255,255,0.001)';
       roundRectPath(ctx, x - 8, (centerY - reelH/2) - 8, reelW + 16, reelH + 16, 20);
       ctx.fill();
       ctx.restore();
 
-      // ---------- INNER FILL (use page background gradient so no visible rectangle) ----------
+      // inner fill: use page gradient so reel visually merges with page (no rectangle)
       ctx.save();
-      const innerY = (centerY - reelH/2);
+      const innerY = centerY - reelH/2;
       const bgGrad = ctx.createLinearGradient(0, innerY, 0, innerY + reelH);
       bgGrad.addColorStop(0, cssVar('--bg-a') || '#031024');
       bgGrad.addColorStop(1, cssVar('--bg-b') || '#061c36');
-      // fill inner reel rect with page gradient to visually merge with background
       ctx.beginPath(); roundRectPath(ctx, x, innerY, reelW, reelH, 12); ctx.clip();
       ctx.fillStyle = bgGrad;
       ctx.fillRect(x, innerY, reelW, reelH);
       ctx.restore();
 
-      // ---------- CLIP (slightly larger to avoid cutting during scaling) ----------
+      // draw symbols inside an expanded clip to avoid cutting while scale animates
       ctx.save();
-      const pad = OUTER_PAD;
-      roundRectPath(ctx, x - pad/2, innerY - pad/2, reelW + pad, reelH + pad, 14);
+      roundRectPath(ctx, x - OUTER_PAD/2, innerY - OUTER_PAD/2, reelW + OUTER_PAD, reelH + OUTER_PAD, 14);
       ctx.clip();
 
-      // draw symbols inside clip (with motion blur)
       const startSi = Math.floor(-r.offset / symbolH) - 4;
       const drawCount = 14;
       for (let si = startSi; si < startSi + drawCount; si++){
@@ -352,7 +350,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
         const dist = Math.abs(yCenter - centerY);
         const maxDist = reelH * 0.95;
         const progress = Math.max(0, 1 - dist / maxDist);
-        const baseScale = 0.70 + 0.30 * progress; // further -> smaller
+        const baseScale = 0.70 + 0.30 * progress;
         const scale = baseScale * r.visualScale;
         const brightness = 0.96 + 0.04 * progress;
         const alpha = 0.56 + 0.44 * progress;
@@ -382,9 +380,9 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
           ctx.restore();
         }
       }
-      ctx.restore(); // end clip
+      ctx.restore();
 
-      // draw thin inner frame (no thick dark border)
+      // thin frame
       ctx.save();
       ctx.strokeStyle = 'rgba(255,255,255,0.04)';
       ctx.lineWidth = 1;
@@ -398,7 +396,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function roundRectStroke(ctx,x,y,w,h,r){ roundRectPath(ctx,x,y,w,h,r); ctx.stroke(); }
 
-  // ---------------- probabilities (jackpot 1.5%, pair 35%) ----------------
+  // probabilities: jackpot 1.5%, pair 35%
   function generateResult(){
     const chance = Math.random()*100;
     if (chance < 1.5){
@@ -419,16 +417,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     }
   }
 
-  // ---------------- spin orchestration ----------------
-  let spinningFlag = false;
-  let autoSpin = false;
-  let autoSpinTimer = null;
+  // spin orchestration (same as before)
+  let spinningFlag = false, autoSpin=false, autoSpinTimer=null;
 
-  // settings/persistence
-  const SETTINGS_KEY = 'rc_settings_v6';
-  let settings = {
-    theme: 'dark', musicEnabled:false, musicVolume:0.28, soundsEnabled:true, vibrationEnabled:true, autoSpin:false
-  };
+  const SETTINGS_KEY = 'rc_settings_v7';
+  let settings = { theme:'dark', musicEnabled:false, musicVolume:0.28, soundsEnabled:true, vibrationEnabled:true, autoSpin:false };
 
   async function doSpin(){
     if (spinningFlag) return;
@@ -507,7 +500,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     }
   }
 
-  // ---------------- settings ----------------
+  // settings / UI wiring (same as before)
   function loadSettings(){
     try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) settings = Object.assign(settings, JSON.parse(raw)); } catch(e){}
     applySettingsToUI(); applySettingsEffect();
@@ -540,7 +533,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       document.documentElement.style.setProperty('--panel-bg', 'rgba(255,255,255,0.96)');
       document.documentElement.style.setProperty('--btn-a', '#f3cfa8');
       document.documentElement.style.setProperty('--btn-b', '#d1a27a');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(200,170,130,0.5)'); // бежевое свечение
+      document.documentElement.style.setProperty('--glow-color', 'rgba(200,170,130,0.5)');
       document.documentElement.style.setProperty('--win-a', 'rgba(255,230,200,0.98)');
       document.documentElement.style.setProperty('--win-b', 'rgba(255,245,240,0.96)');
       document.documentElement.style.setProperty('--modal-a', '#ffffff');
@@ -576,10 +569,9 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     if (modalPanel) modalPanel.style.background = `linear-gradient(180deg, ${cssVar('--modal-a')}, ${cssVar('--modal-b')})`;
   }
 
-  // ---------------- UI wiring ----------------
+  // UI events wiring
   openSettings.addEventListener('click', ()=> { settingsModal.style.display = 'flex'; });
   closeSettings.addEventListener('click', ()=> { settingsModal.style.display = 'none'; applySettingsEffect(); });
-
   musicToggle.addEventListener('change', (e)=> { settings.musicEnabled = e.target.checked; applySettingsEffect(); });
   musicVolume.addEventListener('input', (e)=> { settings.musicVolume = Number(e.target.value); applySettingsEffect(); saveSettings(); });
   soundsToggle.addEventListener('change', (e)=> { settings.soundsEnabled = e.target.checked; applySettingsEffect(); saveSettings(); });
@@ -617,8 +609,8 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   function updateBreathing(){ if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing'); else spinBtn.classList.remove('breathing'); }
 
-  // ---------------- balance ----------------
-  const BAL_KEY = 'rc_balance_v3';
+  // balance
+  const BAL_KEY = 'rc_balance_v4';
   let currentBalance = parseInt(localStorage.getItem(BAL_KEY)) || 1000;
   document.getElementById('balValue').textContent = currentBalance;
   function saveBalance(){ localStorage.setItem(BAL_KEY, String(currentBalance)); }
@@ -633,7 +625,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900);
   }
 
-  // ---------------- init ----------------
+  // init
   resize();
   loadSettings();
   requestAnimationFrame(draw);

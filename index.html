@@ -6,77 +6,52 @@
 <title>Rofl Casino — Mini App</title>
 <link rel="icon" href="images/slot.png" />
 <style>
-  :root{
-    /* тема vars (меняются через JS) */
-    --bg-a: #031024;
-    --bg-b: #061c36;
-    --text: #cfe8ff;
-    --panel-a: rgba(255,255,255,0.02);
-    --panel-b: rgba(255,255,255,0.01);
-    --panel-bg: rgba(3,16,28,0.52);
-
-    --btn-a: #91b7e7;
-    --btn-b: #2b5f91;
-    --glow-color: rgba(140,170,223,0.40); /* used for CSS shadows and canvas */
-    --win-a: rgba(28,60,100,0.98); /* win gradient start */
-    --win-b: rgba(6,20,34,0.96);   /* win gradient end */
-
-    --modal-a: rgba(6,12,22,0.98);
-    --modal-b: rgba(8,18,32,0.98);
-
-    --muted: #bfd9ff;
-  }
-
-  html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text)}
-  body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 12px;box-sizing:border-box}
-  header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px}
-  #logo{width:48px}
-  h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:12px}
-  .stage{width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center;gap:18px}
-  .panel{width:100%;border-radius:14px;padding:18px;box-sizing:border-box;background:linear-gradient(180deg,var(--panel-a),var(--panel-b));box-shadow:0 8px 30px rgba(1,19,38,0.5)}
-  .top-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px}
-  #balance{padding:10px 16px;border-radius:10px;background:var(--panel-bg);font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,0.5)}
-  #message{flex:1;margin-left:12px;text-align:center;font-weight:600;min-height:22px;color:var(--text)}
-  .reel-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:18px;width:100%;max-width:960px;box-sizing:border-box;height:260px}
-  @media (max-width:520px){ .reel-wrap{height:200px} #logo{width:38px} h1{font-size:16px} }
-  #reelsCanvas{width:100%;height:100%;display:block;border-radius:12px;background:linear-gradient(180deg,var(--panel-a),var(--panel-b))}
-  .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
-
-  /* Spin button + Settings button styling (identical visual treatment) */
-  .action-button{
-    padding:12px 18px;font-weight:800;border-radius:12px;border:none;cursor:pointer;
-    background: linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;
-    box-shadow: 0 8px 22px rgba(10,30,50,0.6);
-    transition: box-shadow 180ms ease, transform 120ms ease;
-    position:relative;
-  }
-  @keyframes breath {
-    0% { transform: translateY(0) scale(1); box-shadow: 0 14px 32px rgba(20,60,100,0.30), 0 0 18px var(--glow-color); }
-    50% { transform: translateY(-2px) scale(1.04); box-shadow: 0 36px 72px rgba(20,60,100,0.42), 0 0 44px var(--glow-color); }
-    100% { transform: translateY(0) scale(1); box-shadow: 0 14px 32px rgba(20,60,100,0.30), 0 0 18px var(--glow-color); }
-  }
-  .action-button.breathing { animation: breath 2600ms ease-in-out infinite; }
-  .action-button:hover { transform: translateY(-2px); box-shadow: 0 36px 72px rgba(20,60,100,0.36), 0 0 44px var(--glow-color); }
-  .action-button:active { transform: translateY(0); box-shadow: 0 16px 38px rgba(20,60,100,0.28), 0 0 18px var(--glow-color); }
-  .action-button:disabled{opacity:0.6;cursor:not-allowed;animation:none}
-
-  .muted{opacity:0.85;font-size:14px;color:var(--muted)}
-  .stake-row{display:flex;gap:8px;align-items:center}
-  .stake-row input[type="number"]{width:110px;padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text)}
-  .quick-stakes{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:8px}
-  .quick-stakes button{padding:8px 10px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer}
-
-  .settings-btn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;cursor:pointer;margin-left:6px}
-  .modal{position:fixed;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999;backdrop-filter: blur(4px)}
-  .modal-panel{width:92%;max-width:720px;background:linear-gradient(180deg,var(--modal-a),var(--modal-b));padding:18px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);color:var(--text)}
-  .row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
-  .row:last-child{border-bottom:none}
-  .row .left{display:flex;align-items:center;gap:12px}
-  .row label{font-weight:700}
-  .slider{width:200px}
-  .theme-options{display:flex;gap:10px}
-  .theme-box{width:86px;height:56px;border-radius:8px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:12px}
-  .inline-btn{padding:6px 8px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer}
+/* (тот же CSS что был — не менял дальше визуал) */
+:root{
+  --bg-a: #031024; --bg-b: #061c36; --text: #cfe8ff;
+  --panel-a: rgba(255,255,255,0.02); --panel-b: rgba(255,255,255,0.01);
+  --panel-bg: rgba(3,16,28,0.52);
+  --btn-a: #91b7e7; --btn-b: #2b5f91; --glow-color: rgba(140,170,223,0.40);
+  --win-a: rgba(28,60,100,0.98); --win-b: rgba(6,20,34,0.96);
+  --modal-a: rgba(6,12,22,0.98); --modal-b: rgba(8,18,32,0.98);
+  --muted: #bfd9ff;
+}
+html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text)}
+body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 12px;box-sizing:border-box}
+header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px}
+#logo{width:48px}
+h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:12px}
+.stage{width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.panel{width:100%;border-radius:14px;padding:18px;box-sizing:border-box;background:linear-gradient(180deg,var(--panel-a),var(--panel-b));box-shadow:0 8px 30px rgba(1,19,38,0.5)}
+.top-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px}
+#balance{padding:10px 16px;border-radius:10px;background:var(--panel-bg);font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,0.5)}
+#message{flex:1;margin-left:12px;text-align:center;font-weight:600;min-height:22px;color:var(--text)}
+.reel-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:18px;width:100%;max-width:960px;box-sizing:border-box;height:260px}
+@media (max-width:520px){ .reel-wrap{height:200px} #logo{width:38px} h1{font-size:16px} }
+#reelsCanvas{width:100%;height:100%;display:block;border-radius:12px;background:linear-gradient(180deg,var(--panel-a),var(--panel-b))}
+.controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.action-button{padding:12px 18px;font-weight:800;border-radius:12px;border:none;cursor:pointer;background: linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;box-shadow: 0 8px 22px rgba(10,30,50,0.6);transition: box-shadow 180ms ease, transform 120ms ease;position:relative;}
+@keyframes breath {0% { transform: translateY(0) scale(1); box-shadow: 0 14px 32px rgba(20,60,100,0.30), 0 0 18px var(--glow-color); }50% { transform: translateY(-2px) scale(1.04); box-shadow: 0 36px 72px rgba(20,60,100,0.42), 0 0 44px var(--glow-color);}100%{transform:translateY(0) scale(1);box-shadow:0 14px 32px rgba(20,60,100,0.30),0 0 18px var(--glow-color)}}
+.action-button.breathing { animation: breath 2600ms ease-in-out infinite; }
+.action-button:hover { transform: translateY(-2px); box-shadow: 0 36px 72px rgba(20,60,100,0.36), 0 0 44px var(--glow-color); }
+.action-button:active { transform: translateY(0); box-shadow: 0 16px 38px rgba(20,60,100,0.28), 0 0 18px var(--glow-color); }
+.action-button:disabled{opacity:0.6;cursor:not-allowed;animation:none}
+.muted{opacity:0.85;font-size:14px;color:var(--muted)}
+.stake-row{display:flex;gap:8px;align-items:center}
+.stake-row input[type="number"]{width:110px;padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text)}
+.quick-stakes{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:8px}
+.quick-stakes button{padding:8px 10px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer}
+.settings-btn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;cursor:pointer;margin-left:6px}
+.modal{position:fixed;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999;backdrop-filter: blur(4px)}
+.modal-panel{width:92%;max-width:720px;background:linear-gradient(180deg,var(--modal-a),var(--modal-b));padding:18px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);color:var(--text)}
+.row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
+.row:last-child{border-bottom:none}
+.row .left{display:flex;align-items:center;gap:12px}
+.row label{font-weight:700}
+.slider{width:200px}
+.theme-options{display:flex;gap:10px}
+.theme-box{width:86px;height:56px;border-radius:8px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:12px}
+.inline-btn{padding:6px 8px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer}
 </style>
 </head>
 <body>
@@ -116,18 +91,15 @@
     </section>
   </main>
 
-  <!-- sounds -->
   <audio id="clickSound" src="sounds/click.mp3" preload="auto"></audio>
   <audio id="winSound" src="sounds/win.mp3" preload="auto"></audio>
   <audio id="loseSound" src="sounds/lose.mp3" preload="auto"></audio>
   <audio id="jackpotSound" src="sounds/jackpot.mp3" preload="auto"></audio>
   <audio id="bgMusic" src="sounds/bg.mp3" preload="auto" loop></audio>
 
-  <!-- settings modal -->
   <div id="settingsModal" class="modal" style="display:none">
     <div class="modal-panel">
       <h3 style="margin:0 0 12px 0">Настройки</h3>
-
       <div class="row">
         <div class="left"><label>Музыка</label></div>
         <div>
@@ -135,20 +107,16 @@
           <input type="range" id="musicVolume" class="slider" min="0" max="1" step="0.01" value="0.28">
         </div>
       </div>
-
       <div class="row">
         <div class="left"><label>Звуки (эффекты)</label></div>
         <div>
           <input type="checkbox" id="soundsToggle"> Вкл
-          <!-- slider removed per request -->
         </div>
       </div>
-
       <div class="row">
         <div class="left"><label>Вибрация при выигрыше</label></div>
         <div><input type="checkbox" id="vibrateToggle" checked></div>
       </div>
-
       <div class="row">
         <div class="left"><label>Тема</label></div>
         <div class="theme-options">
@@ -157,7 +125,6 @@
           <div class="theme-box" id="themeRed" style="background:linear-gradient(180deg,#3b0f12,#20080a);color:#ffd1d1">Тёмно-красная</div>
         </div>
       </div>
-
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
         <button id="closeSettings" class="inline-btn">Закрыть</button>
       </div>
@@ -166,8 +133,10 @@
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
+/* ---- обновлённый рабочий код: фикс для нестарта спина + убрал 'пятно' за барабанами ---- */
+
 (function(){
-  // ========== config ==========
+  // config
   const REEL_COUNT = 3;
   const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
   const TOTAL_SPIN_DURATION = 7000;
@@ -177,7 +146,7 @@
   const MAX_SCALE_BOOST = 1.18;
   const SCALE_EASE = 0.16;
 
-  // ========== DOM ==========
+  // DOM
   const reelArea = document.getElementById('reelArea');
   const canvas = document.getElementById('reelsCanvas');
   const ctx = canvas.getContext('2d', { alpha: true });
@@ -204,7 +173,7 @@
 
   try { clickSound.volume=0.28; winSound.volume=0.95; loseSound.volume=0.4; jackpotSound.volume=0.9; } catch(e){}
 
-  // ========== canvas layout ==========
+  // canvas layout
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let W=0,H=0,reelW=0,reelH=0,reelX=[];
   function computeLayout(){
@@ -232,7 +201,7 @@
   }
   window.addEventListener('resize', resize);
 
-  // ========== preload images ==========
+  // preload
   const SYMBOLS = [];
   for (let i=0;i<SYMBOL_FILES.length;i++){
     const img = new Image();
@@ -240,7 +209,7 @@
     SYMBOLS.push({ img, name: SYMBOL_FILES[i].split('/').pop().split('.')[0] });
   }
 
-  // ========== reel model ==========
+  // Reel model
   class Reel {
     constructor(i){
       this.i = i;
@@ -259,6 +228,7 @@
       this.visualScale = 1.0;
     }
     start(finalSymbolIndex, duration){
+      console.log('Reel.start', this.i, 'finalSymbolIndex=', finalSymbolIndex, 'duration=', duration);
       const symbolH = Math.round(reelH * 0.86);
       const rotations = 3 + Math.floor(Math.random()*2);
       let found = -1;
@@ -278,18 +248,10 @@
   const reels = [];
   for (let i=0;i<REEL_COUNT;i++) reels.push(new Reel(i));
 
-  // helper to read css var
+  // css var helper
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''; }
-  function createBackgroundGradient(ctx, x, y, h){
-    const a = cssVar('--bg-a') || '#031024';
-    const b = cssVar('--bg-b') || '#061c36';
-    const g = ctx.createLinearGradient(0, y, 0, y + h);
-    g.addColorStop(0, a);
-    g.addColorStop(1, b);
-    return g;
-  }
 
-  // ========== draw loop ==========
+  // draw loop (note: inside mask we now fill with panel-bg to avoid the visible "patch")
   function draw(){
     ctx.clearRect(0,0,W,H);
     const symbolH = Math.round(reelH * 0.86);
@@ -300,7 +262,6 @@
       const r = reels[ri];
       const x = reelX[ri];
 
-      // update offsets
       if (r.spinning){
         const now = performance.now();
         let tRaw = (now - r.startTime) / Math.max(1, r.duration);
@@ -317,11 +278,10 @@
         }
       }
 
-      // smooth visual scale
+      // smooth scale
       const targetScale = r.spinning ? MAX_SCALE_BOOST : 1.0;
       r.visualScale += (targetScale - r.visualScale) * SCALE_EASE;
 
-      // motion blur
       let motionBlur = 0;
       if (r.spinning){
         const now = performance.now();
@@ -330,24 +290,23 @@
         motionBlur = (1 - phase) * MAX_MOTION_BLUR;
       }
 
-      // outer glow (outside clip) - more noticeable (larger blur and alpha)
+      // outer glow
       if (r.visualScale > 1.005){
         ctx.save();
         ctx.shadowColor = glowColorCss;
-        ctx.shadowBlur = 64; // сильно заметнее
-        ctx.fillStyle = 'rgba(0,0,0,0)'; // transparent but shadow shows
+        ctx.shadowBlur = 64;
+        ctx.fillStyle = 'rgba(0,0,0,0)';
         roundRectPath(ctx, x - 10, (H - reelH)/2 - 10, reelW + 20, reelH + 20, 20);
         ctx.fill();
         ctx.restore();
 
-        // mask inside with background gradient so inside matches theme
+        // **IMPORTANT FIX**: fill the INSIDE with panel-bg (same as panel) so no odd rectangle shows
         ctx.save();
         ctx.beginPath(); roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12); ctx.clip();
-        ctx.fillStyle = createBackgroundGradient(ctx, x, (H - reelH)/2, reelH);
+        ctx.fillStyle = cssVar('--panel-bg') || 'rgba(3,16,28,0.52)';
         ctx.fillRect(x, (H - reelH)/2, reelW, reelH);
         ctx.restore();
       } else {
-        // small inner panel
         ctx.save();
         ctx.beginPath(); roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12); ctx.clip();
         ctx.fillStyle = cssVar('--panel-bg') || 'rgba(3,16,28,0.52)';
@@ -355,7 +314,7 @@
         ctx.restore();
       }
 
-      // clip and draw symbols
+      // draw symbols clipped
       ctx.save();
       roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12);
       ctx.clip();
@@ -408,7 +367,7 @@
 
       ctx.restore();
 
-      // thin frame
+      // frame
       ctx.save();
       ctx.strokeStyle = 'rgba(255,255,255,0.03)';
       ctx.lineWidth = 1;
@@ -422,33 +381,25 @@
   function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function roundRectStroke(ctx,x,y,w,h,r){ roundRectPath(ctx,x,y,w,h,r); ctx.stroke(); }
 
-  // ========== result probabilities ==========
+  // probabilities
   function generateResult(){
     const chance = Math.random()*100;
-    if (chance < 1){
-      const s = Math.floor(Math.random()*SYMBOLS.length);
-      return [s,s,s];
-    } else if (chance < 31){
-      const s1 = Math.floor(Math.random()*SYMBOLS.length);
-      let s2;
-      do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1);
-      if (Math.random() < 0.5) return [s1,s1,s2]; else return [s1,s2,s1];
-    } else {
-      const arr = [];
-      while (arr.length < 3){
-        const s = Math.floor(Math.random()*SYMBOLS.length);
-        if (!arr.includes(s)) arr.push(s);
-      }
-      return arr;
-    }
+    if (chance < 1){ const s = Math.floor(Math.random()*SYMBOLS.length); return [s,s,s]; }
+    else if (chance < 31){ const s1 = Math.floor(Math.random()*SYMBOLS.length); let s2; do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1); if (Math.random() < 0.5) return [s1,s1,s2]; else return [s1,s2,s1]; }
+    else { const arr=[]; while(arr.length<3){ const s=Math.floor(Math.random()*SYMBOLS.length); if(!arr.includes(s)) arr.push(s);} return arr; }
   }
 
-  // ========== spin orchestration ==========
-  let spinningFlag = false;
-  let autoSpin = false;
-  let autoSpinTimer = null;
+  // spin orchestration
+  let spinningFlag = false, autoSpin=false, autoSpinTimer=null;
+
+  // SETTINGS declared early to avoid reference errors in doSpin
+  const SETTINGS_KEY = 'rc_settings_v4';
+  let settings = {
+    theme: 'dark', musicEnabled:false, musicVolume:0.28, soundsEnabled:true, vibrationEnabled:true, autoSpin:false
+  };
 
   async function doSpin(){
+    console.log('doSpin called');
     if (spinningFlag) return;
     const stake = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
     if (stake <= 0){ setMessage('Поставь корректную ставку',2000); return; }
@@ -460,7 +411,7 @@
     spinBtn.classList.remove('breathing');
     setMessage('');
     currentBalance -= stake;
-    balValueEl.textContent = currentBalance;
+    document.getElementById('balValue').textContent = currentBalance;
     saveBalance();
 
     const finals = generateResult();
@@ -485,7 +436,6 @@
       await new Promise(res => setTimeout(res, 120));
     }
 
-    // compute visible names
     const names = reels.map(r => {
       const symbolH = Math.round(reelH * 0.86);
       const centerIndexFloat = - Math.round(r.offset / symbolH);
@@ -503,22 +453,12 @@
     } else if (anyPair){ change = stakeUsed * 2; msg = '😉 Почти — мелкий выигрыш'; if (settings.soundsEnabled) playSafe(winSound); }
     else { change = 0; msg = '🙁 Увы — попробуй ещё'; if (settings.soundsEnabled) playSafe(loseSound); }
 
-    // vibration on win
     if (change > 0 && settings.vibrationEnabled){
-      try {
-        if (navigator.vibrate) {
-          if (change >= stakeUsed * 8) navigator.vibrate([70,40,70,80]);
-          else navigator.vibrate([40,20,40]);
-        } else if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback && typeof Telegram.WebApp.HapticFeedback.impactOccurred === 'function') {
-          try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
-        }
-      } catch(e){}
+      try { if (navigator.vibrate) { if (change >= stakeUsed * 8) navigator.vibrate([70,40,70,80]); else navigator.vibrate([40,20,40]); } } catch(e){}
     }
 
     if (change > 0) smoothWinGradient();
-    currentBalance += change;
-    balValueEl.textContent = currentBalance;
-    saveBalance();
+    currentBalance += change; document.getElementById('balValue').textContent = currentBalance; saveBalance();
     setMessage(msg,2400);
 
     if (window.Telegram && Telegram.WebApp){
@@ -529,34 +469,20 @@
     spinBtn.disabled = false;
     spinBtn.classList.add('breathing');
 
-    if (autoSpin){
-      autoSpinTimer = setTimeout(()=> {
-        if (!spinningFlag) doSpin();
-      }, 700);
-    }
+    if (autoSpin){ autoSpinTimer = setTimeout(()=> { if (!spinningFlag) doSpin(); }, 700); }
   }
 
-  // ========== settings & persistence ==========
-  const SETTINGS_KEY = 'rc_settings_v4';
-  let settings = {
-    theme: 'dark',
-    musicEnabled: false,
-    musicVolume: 0.28,
-    soundsEnabled: true,
-    vibrationEnabled: true,
-    autoSpin: false
-  };
-
+  // settings functions (load/apply)
   function loadSettings(){
     try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) settings = Object.assign(settings, JSON.parse(raw)); } catch(e){}
     applySettingsToUI(); applySettingsEffect();
   }
   function saveSettings(){ try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e){} }
   function applySettingsToUI(){
-    musicToggle.checked = !!settings.musicEnabled;
-    musicVolume.value = settings.musicVolume ?? 0.28;
-    soundsToggle.checked = !!settings.soundsEnabled;
-    vibrateToggle.checked = !!settings.vibrationEnabled;
+    document.getElementById('musicToggle').checked = !!settings.musicEnabled;
+    document.getElementById('musicVolume').value = settings.musicVolume ?? 0.28;
+    document.getElementById('soundsToggle').checked = !!settings.soundsEnabled;
+    document.getElementById('vibrateToggle').checked = !!settings.vibrationEnabled;
     [themeLight, themeDark, themeRed].forEach(el => el.style.outline = 'none');
     if (settings.theme === 'light') themeLight.style.outline = '3px solid rgba(255,255,255,0.12)';
     else if (settings.theme === 'red') themeRed.style.outline = '3px solid rgba(255,255,255,0.12)';
@@ -565,24 +491,11 @@
     autoSpinBtn.textContent = autoSpin ? 'Auto: On' : 'Auto: Off';
   }
   function applySettingsEffect(){
-    // music
-    if (settings.musicEnabled){
-      try { bgMusic.volume = settings.musicVolume; bgMusic.play().catch(()=>{}); } catch(e){}
-    } else {
-      try { bgMusic.pause(); } catch(e){}
-    }
-    // sounds: only mute toggle now (no slider) - set fixed volumes if enabled
-    if (settings.soundsEnabled){
-      try { clickSound.volume = 0.28; winSound.volume = 0.95; loseSound.volume = 0.4; jackpotSound.volume = 0.9; } catch(e){}
-    } else {
-      try { clickSound.volume = 0; winSound.volume = 0; loseSound.volume = 0; jackpotSound.volume = 0; } catch(e){}
-    }
-    // vibration flag saved
-    // theme
+    if (settings.musicEnabled){ try { bgMusic.volume = settings.musicVolume; bgMusic.play().catch(()=>{}); } catch(e){} } else { try { bgMusic.pause(); } catch(e){} }
+    if (settings.soundsEnabled){ try { clickSound.volume = 0.28; winSound.volume = 0.95; loseSound.volume = 0.4; jackpotSound.volume = 0.9; } catch(e){} } else { try { clickSound.volume = 0; winSound.volume = 0; loseSound.volume = 0; jackpotSound.volume = 0; } catch(e){} }
     applyTheme(settings.theme);
     saveSettings();
   }
-
   function applyTheme(theme){
     if (theme === 'light'){
       document.documentElement.style.setProperty('--bg-a', '#f6f8fb');
@@ -621,15 +534,13 @@
       document.documentElement.style.setProperty('--modal-a', 'rgba(6,12,22,0.98)');
       document.documentElement.style.setProperty('--modal-b', 'rgba(8,18,32,0.98)');
     }
-    // update immediate visuals
     spinBtn.style.background = `linear-gradient(180deg, ${cssVar('--btn-a')}, ${cssVar('--btn-b')})`;
     openSettings.style.background = spinBtn.style.background;
-    // modal
     const modalPanel = document.querySelector('.modal-panel');
     if (modalPanel) modalPanel.style.background = `linear-gradient(180deg, ${cssVar('--modal-a')}, ${cssVar('--modal-b')})`;
   }
 
-  // ========== UI wiring ==========
+  // UI wiring (simple)
   openSettings.addEventListener('click', ()=> { settingsModal.style.display = 'flex'; });
   closeSettings.addEventListener('click', ()=> { settingsModal.style.display = 'none'; applySettingsEffect(); });
 
@@ -642,7 +553,6 @@
   themeDark.addEventListener('click', ()=> { settings.theme='dark'; applySettingsToUI(); applySettingsEffect(); });
   themeRed.addEventListener('click', ()=> { settings.theme='red'; applySettingsToUI(); applySettingsEffect(); });
 
-  // quick stakes
   document.querySelectorAll('.quick-stakes button').forEach(btn => {
     btn.addEventListener('click', ()=> {
       const step = btn.dataset.step;
@@ -655,7 +565,6 @@
   maxStakeBtn.addEventListener('click', ()=> { stakeInput.value = Math.max(10, currentBalance); });
   stakeInput.addEventListener('blur', ()=> { stakeInput.value = Math.max(10, Math.floor(Number(stakeInput.value) || 100)); });
 
-  // auto-spin
   autoSpinBtn.addEventListener('click', ()=> {
     autoSpin = !autoSpin;
     settings.autoSpin = autoSpin;
@@ -665,7 +574,6 @@
     if (autoSpin && !spinningFlag) doSpin();
   });
 
-  // spin button
   spinBtn.addEventListener('click', ()=> {
     doSpin().catch(e=>{ console.error(e); spinBtn.disabled=false; spinningFlag=false; updateBreathing(); });
     updateBreathing();
@@ -673,7 +581,7 @@
 
   function updateBreathing(){ if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing'); else spinBtn.classList.remove('breathing'); }
 
-  // ========== persistence balance ==========
+  // balance persistence
   const BAL_KEY = 'rc_balance_v2';
   let currentBalance = parseInt(localStorage.getItem(BAL_KEY)) || 1000;
   document.getElementById('balValue').textContent = currentBalance;
@@ -681,20 +589,12 @@
 
   function playSafe(audio){ try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){} }
   function setMessage(text, timeout=2200){ const m = document.getElementById('message'); m.textContent = text; if (timeout>0) setTimeout(()=>{ m.textContent = 'Готово — нажми SPIN'; }, timeout); }
+  function smoothWinGradient(){ const a = cssVar('--win-a'), b = cssVar('--win-b'); document.body.style.transition = 'background 900ms ease-in-out'; document.body.style.background = `linear-gradient(180deg, ${a}, ${b})`; setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900); }
 
-  // win gradient uses theme-specific vars
-  function smoothWinGradient(){
-    const a = cssVar('--win-a') || 'rgba(28,60,100,0.98)';
-    const b = cssVar('--win-b') || 'rgba(6,20,34,0.96)';
-    document.body.style.transition = 'background 900ms ease-in-out';
-    document.body.style.background = `linear-gradient(180deg, ${a}, ${b})`;
-    setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900);
-  }
-
-  // ========== init loop ==========
+  // init: **call resize & loadSettings before attaching logic** (done above), start draw
   resize();
+  loadSettings(); // important — settings available before user actions
   requestAnimationFrame(draw);
-  loadSettings();
   updateBreathing();
 
   const ro = new ResizeObserver(()=> { resize(); });
@@ -706,7 +606,7 @@
 
   window.addEventListener('beforeunload', ()=> { saveSettings(); saveBalance(); });
 
-  // expose debug
+  // expose for debug
   window._rc = { reels, SYMBOLS, settings };
 
 })();

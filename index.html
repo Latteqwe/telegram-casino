@@ -366,16 +366,21 @@ html, body, #reelArea {
       // glowRadius растёт с scaleFactor — плавное увеличение свечения
       const glowRadius = glowBase * (0.6 + 0.8 * scaleFactor);
 
-      // shadow strength / blur — небольшое усиление для тёмных тем учитывается ниже
-      // увеличил чуть-чуть множитель для увеличения радиуса свечения
-      ctx.shadowBlur = Math.max(12, glowRadius * 7.0);
-      // более насыщенная тень по цвету
-      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, Math.min(0.98, 0.8 + 0.28 * scaleFactor));
-      // тонкий stroke, но с большим shadowBlur даст заметное свечение вокруг
-      // чуть усилил alpha и ширину строки
-      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.10);
-      ctx.lineWidth = Math.max(10, glowRadius * 0.95);
-      // используем фиксированный cornerRadius, почти квадратный
+      // ---- APPLY +15% STRONGER GLOW ----
+      // previous multipliers bumped by 15%
+      const SHADOW_BLUR_MULT = 7.0 * 1.15;    // was 7.0, now +15%
+      const LINEWIDTH_MULT = 0.95 * 1.15;     // was 0.95, now +15%
+      const STROKE_ALPHA = 0.10 * 1.15;       // was 0.10, now +15%
+
+      // shadow strength / blur
+      ctx.shadowBlur = Math.max(12, glowRadius * SHADOW_BLUR_MULT);
+      // more saturated shadow alpha, also bumped a bit
+      const shadowAlpha = Math.min(1.0, (0.8 + 0.28 * scaleFactor) * 1.15);
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, shadowAlpha);
+      // stroke style slightly stronger
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, Math.min(0.95, STROKE_ALPHA));
+      ctx.lineWidth = Math.max(10, glowRadius * LINEWIDTH_MULT);
+      // almost-square corners
       const cornerRadius = 2;
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, cornerRadius);
       ctx.stroke();

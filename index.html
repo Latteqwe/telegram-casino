@@ -18,6 +18,16 @@
 }
 html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text)}
 body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 12px;box-sizing:border-box}
+header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px}
+#logo{width:48px}
+h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:12px}
+.stage{width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.panel{width:100%;border-radius:14px;padding:18px;box-sizing:border-box;background:linear-gradient(180deg,var(--panel-a),var(--panel-b));box-shadow:0 8px 30px rgba(1,19,38,0.5)}
+.top-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px}
+#balance{padding:10px 16px;border-radius:10px;background:var(--panel-bg);font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,0.5)}
+#message{flex:1;margin-left:12px;text-align:center;font-weight:600;min-height:22px;color:var(--text)}
+.reel-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:18px;width:100%;max-width:960px;box-sizing:border-box;height:260px;overflow:visible}
+@media (max-width:520px){ .reel-wrap{height:200px} #logo{width:38px} h1{font-size:16px} }
 
 /* запрет свайпов/зумов через CSS (дублируется JS-обработчиками) */
 html, body, #reelArea {
@@ -29,18 +39,8 @@ html, body, #reelArea {
   user-select: none;
 }
 
-header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px}
-#logo{width:48px}
-h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:12px}
-.stage{width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center;gap:18px}
-.panel{width:100%;border-radius:14px;padding:18px;box-sizing:border-box;background:linear-gradient(180deg,var(--panel-a),var(--panel-b));box-shadow:0 8px 30px rgba(1,19,38,0.5)}
-.top-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px}
-#balance{padding:10px 16px;border-radius:10px;background:var(--panel-bg);font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,0.5)}
-#message{flex:1;margin-left:12px;text-align:center;font-weight:600;min-height:22px;color:var(--text)}
-.reel-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:18px;width:100%;max-width:960px;box-sizing:border-box;height:260px;overflow:visible}
-@media (max-width:520px){ .reel-wrap{height:200px} #logo{width:38px} h1{font-size:16px} }
 /* canvas won't block clicks now */
-#reelsCanvas{display:block;background:transparent;position:absolute;left:0;top:0;will-change:transform;pointer-events:none;z-index:3}
+#reelsCanvas{display:block;background:transparent;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);will-change:transform;pointer-events:none;z-index:3}
 .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
 .action-button{padding:12px 18px;font-weight:800;border-radius:12px;border:none;cursor:pointer;background: linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;box-shadow: 0 8px 22px rgba(10,30,50,0.6);transition: box-shadow 180ms ease, transform 120ms ease;position:relative;}
 @keyframes breath {0% { transform: translateY(0) scale(1); box-shadow: 0 14px 32px rgba(20,60,100,0.20), 0 0 12px var(--glow-color);}50% { transform: translateY(-2px) scale(1.03); box-shadow: 0 28px 56px rgba(20,60,100,0.30), 0 0 28px var(--glow-color);}100%{transform:translateY(0) scale(1);box-shadow:0 14px 32px rgba(20,60,100,0.20),0 0 12px var(--glow-color)}}
@@ -217,9 +217,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     canvas.height = canvasH;
     canvas.style.width = (W + PAD*2) + 'px';
     canvas.style.height = (H + PAD*2) + 'px';
+    // center canvas inside reelArea
     canvas.style.position = 'absolute';
-    canvas.style.left = -PAD + 'px';
-    canvas.style.top = -PAD + 'px';
+    canvas.style.left = '50%';
+    canvas.style.top = '50%';
+    canvas.style.transform = 'translate(-50%,-50%)';
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
@@ -353,25 +355,36 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       }
     }
 
-    // DRAW STRONGER GLOW (shadow stroke) — draw before reel so reel is on top
+    // DRAW RADIAL GLOW (fades to edges) — draw before reel so reel is on top
     if (r.spinning){
-      // corrected glowStrength formula & MUCH stronger but still controlled glow
       const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
       const baseSize = Math.max(reelW, reelH);
       const glowRadius = baseSize * (0.45 + glowStrength * 0.4) * scale;
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
 
-      // ------------- **Усиленное свечение** -------------
-      // Увеличил множитель shadowBlur и lineWidth, и сделал альфу максимально заметной (1.0),
-      // но не ставлю >1 — чтобы не было артефактов.
-      ctx.shadowBlur = Math.max(18, glowRadius * 1.6);                // сильный, но компактный blur
-      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 1.0);      // насыщенная альфа
-      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.08);
-      ctx.lineWidth = Math.max(12, glowRadius * 0.36);               // толще stroke — glow виден четко
+      // radial gradient that fades to transparent at edges
+      const inner = Math.max(4, glowRadius * 0.08);
+      const g = ctx.createRadialGradient(0, 0, inner, 0, 0, glowRadius);
+      g.addColorStop(0.0, hexOrColorWithAlpha(glowColorCss, 0.98));
+      g.addColorStop(0.45, hexOrColorWithAlpha(glowColorCss, 0.55));
+      g.addColorStop(1.0, hexOrColorWithAlpha(glowColorCss, 0.0));
+
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+
+      // subtle stroke to define rim (kept thin so glow looks soft)
+      ctx.shadowBlur = Math.max(8, glowRadius * 0.28);
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.9);
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.06);
+      ctx.lineWidth = Math.max(8, glowRadius * 0.18);
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
       ctx.stroke();
-      // reset
+
       ctx.shadowBlur = 0;
       ctx.shadowColor = 'transparent';
       ctx.restore();
@@ -703,12 +716,10 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   }
 
   // ----- disable native scrolling / swipes (JS) -----
-  // Prevent touchmove scrolling (passive:false so preventDefault works)
   function preventTouchMove(e){
     if (e.cancelable) e.preventDefault();
   }
   document.addEventListener('touchmove', preventTouchMove, { passive: false });
-  // Also prevent wheel scroll on desktop
   window.addEventListener('wheel', (e)=>{ if (e.cancelable) e.preventDefault(); }, { passive: false });
 
   // ----- init -----

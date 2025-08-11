@@ -4,27 +4,162 @@
   <meta charset="UTF-8">
   <title>Slots</title>
   <style>
-    body { background: #222; color: white; text-align: center; font-size: 2em; }
-    button { font-size: 1em; padding: 10px 20px; }
+    body { background: #222; color: white; text-align: center; font-size: 2em; margin: 0; }
+    button { font-size: 1em; padding: 10px 20px; margin: 5px; }
+    #message { font-size: 0.8em; margin-top: 10px; }
+    #settings, #admin-panel { display: none; background: #333; padding: 10px; border-radius: 10px; margin-top: 10px; }
+    input[type="range"] { width: 80%; }
+    .slot-container { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+    .reel { width: 60px; height: 60px; overflow: hidden; border: 2px solid #555; border-radius: 8px; background: #111; }
+    .symbols { display: flex; flex-direction: column; transition: transform 0.1s linear; }
+    .symbol { height: 60px; display: flex; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
   <h1>🎰 Slots</h1>
-  <div id="result">🍒🍋🍊</div>
+  <div class="slot-container">
+    <div class="reel"><div class="symbols" id="reel0"></div></div>
+    <div class="reel"><div class="symbols" id="reel1"></div></div>
+    <div class="reel"><div class="symbols" id="reel2"></div></div>
+  </div>
+  <div id="message"></div>
+  
   <button onclick="spin()">SPIN</button>
+  <button onclick="toggleSettings()">⚙️ Настройки</button>
+  <button id="admin-btn" onclick="toggleAdmin()" style="display:none;">🛠 Админ</button>
+
+  <div id="settings">
+    <label>🔊 Громкость: <span id="volume-value">100</span>%</label><br>
+    <input type="range" id="volume" min="0" max="100" value="100" oninput="updateVolume(this.value)">
+  </div>
+
+  <div id="admin-panel">
+    <h2>Админ-панель</h2>
+    <button onclick="alert('Тут будет функция №1')">Функция 1</button>
+    <button onclick="alert('Тут будет функция №2')">Функция 2</button>
+  </div>
+
+  <audio id="click-sound" src="https://www.myinstants.com/media/sounds/click.mp3"></audio>
+  <audio id="win-sound" src="https://www.myinstants.com/media/sounds/tada-fanfare.mp3"></audio>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    function spin() {
-      const symbols = ["🍒", "🍋", "🍊", "🍉", "⭐", "💎"];
-      let r = [];
-      for (let i = 0; i < 3; i++) {
-        r.push(symbols[Math.floor(Math.random() * symbols.length)]);
-      }
-      document.getElementById('result').textContent = r.join('');
+    const symbolsList = ["🍒", "🍋", "🍊", "🍉", "⭐", "💎"];
+    const clickSound = document.getElementById("click-sound");
+    const winSound = document.getElementById("win-sound");
 
-      // Отправляем результат в бота
-      Telegram.WebApp.sendData(JSON.stringify({ result: r.join('') }));
+    let volume = 1.0;
+    const admins = ["945783973"]; // только твой ID
+
+    window.onload = () => {
+      let savedVol = localStorage.getItem("slotVolume");
+      if (savedVol !== null) {
+        volume = parseFloat(savedVol);
+        document.getElementById("volume").value = Math.round(volume * 100);
+        document.getElementById("volume-value").textContent = Math.round(volume * 100);
+      }
+      initReels();
+
+      // Берём ID игрока прямо из Telegram WebApp
+      const user = Telegram.WebApp.initDataUnsafe?.user;
+      if (user && admins.includes(String(user.id))) {
+        document.getElementById("admin-btn").style.display = "inline-block";
+      }
+    };
+
+    function initReels() {
+      for (let i = 0; i < 3; i++) {
+        const reel = document.getElementById(`reel${i}`);
+        reel.innerHTML = "";
+        for (let s of symbolsList) {
+          let div = document.createElement("div");
+          div.className = "symbol";
+          div.textContent = s;
+          reel.appendChild(div);
+        }
+        for (let s of symbolsList) {
+          let div = document.createElement("div");
+          div.className = "symbol";
+          div.textContent = s;
+          reel.appendChild(div);
+        }
+      }
+    }
+
+    function toggleSettings() {
+      const s = document.getElementById('settings');
+      s.style.display = s.style.display === "none" ? "block" : "none";
+    }
+
+    function toggleAdmin() {
+      const s = document.getElementById('admin-panel');
+      s.style.display = s.style.display === "none" ? "block" : "none";
+    }
+
+    function updateVolume(val) {
+      volume = val / 100;
+      document.getElementById("volume-value").textContent = val;
+      localStorage.setItem("slotVolume", volume);
+    }
+
+    async function spin() {
+      document.getElementById('message').textContent = "";
+      let results = generateResult();
+      for (let col = 0; col < 3; col++) {
+        await spinReel(col, 20 + col * 5);
+        clickSound.volume = volume;
+        clickSound.currentTime = 0;
+        clickSound.play().catch(() => {});
+        stopReel(col, results[col]);
+      }
+      let msg = "";
+      if (results[0] === results[1] && results[1] === results[2]) {
+        msg = "🎉 Джекпот!";
+        winSound.volume = volume;
+        winSound.play().catch(() => {});
+      } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
+        msg = "😉 Почти!";
+      } else {
+        msg = "🙁 Не повезло!";
+      }
+      document.getElementById('message').textContent = msg;
+    }
+
+    function generateResult() {
+      let chance = Math.random() * 100;
+      let res = [];
+      if (chance <= 1) {
+        let sym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+        res = [sym, sym, sym];
+      } else if (chance <= 21) {
+        let sym1 = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+        let sym2;
+        do { sym2 = symbolsList[Math.floor(Math.random() * symbolsList.length)]; } while (sym2 === sym1);
+        if (Math.random() < 0.5) { res = [sym1, sym1, sym2]; } else { res = [sym1, sym2, sym1]; }
+      } else {
+        while (res.length < 3) {
+          let sym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+          if (!res.includes(sym)) res.push(sym);
+        }
+      }
+      return res;
+    }
+
+    async function spinReel(index, spins) {
+      const reel = document.getElementById(`reel${index}`);
+      let pos = 0;
+      for (let i = 0; i < spins; i++) {
+        pos -= 60;
+        if (Math.abs(pos) >= reel.scrollHeight / 2) pos = 0;
+        reel.style.transform = `translateY(${pos}px)`;
+        await new Promise(r => setTimeout(r, 80));
+      }
+    }
+
+    function stopReel(index, finalSymbol) {
+      const reel = document.getElementById(`reel${index}`);
+      let stopIndex = symbolsList.indexOf(finalSymbol);
+      reel.style.transform = `translateY(${-stopIndex * 60}px)`;
     }
   </script>
 </body>

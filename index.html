@@ -346,14 +346,14 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     if (r.spinning){
       const glowStrength = Math.max(0.02, (scale - 3) / (MAX_SCALE_BOOST - 6));
       const baseSize = Math.max(reelW, reelH);
-      const glowRadius = baseSize * (1 + glowStrength * 1) * scale;
+      const glowRadius = baseSize * (0.5 + glowStrength * 0.3) * scale;
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
       // **увеличенное свечение**
       ctx.shadowBlur = Math.max(12, glowRadius * 3);              // <- сильнее blur
       ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 3);     // <- более насыщенная альфа
       ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.02);
-      ctx.lineWidth = Math.max(12, glowRadius * 0.34);               // <- толще stroke чтобы glow был заметнее
+      ctx.lineWidth = Math.max(12, glowRadius * 1);               // <- толще stroke чтобы glow был заметнее
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
       ctx.stroke();
       // reset
@@ -706,5 +706,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 </script>
 </body>
 </html>
+
 
 

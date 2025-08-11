@@ -7,21 +7,24 @@
 <link rel="icon" href="images/slot.png" />
 <style>
   :root{
-    /* тема - меняется динамически из JS */
+    /* тема vars (меняются через JS) */
     --bg-a: #031024;
     --bg-b: #061c36;
     --text: #cfe8ff;
     --panel-a: rgba(255,255,255,0.02);
     --panel-b: rgba(255,255,255,0.01);
     --panel-bg: rgba(3,16,28,0.52);
-    --accent-a: #91b7e7;
-    --accent-b: #2b5f91;
+
     --btn-a: #91b7e7;
     --btn-b: #2b5f91;
-    --glow-color: rgba(140,170,223,0.30); /* fallback, canvas reads var */
-    --muted: #bfd9ff;
+    --glow-color: rgba(140,170,223,0.40); /* used for CSS shadows and canvas */
+    --win-a: rgba(28,60,100,0.98); /* win gradient start */
+    --win-b: rgba(6,20,34,0.96);   /* win gradient end */
+
     --modal-a: rgba(6,12,22,0.98);
     --modal-b: rgba(8,18,32,0.98);
+
+    --muted: #bfd9ff;
   }
 
   html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text)}
@@ -38,8 +41,9 @@
   @media (max-width:520px){ .reel-wrap{height:200px} #logo{width:38px} h1{font-size:16px} }
   #reelsCanvas{width:100%;height:100%;display:block;border-radius:12px;background:linear-gradient(180deg,var(--panel-a),var(--panel-b))}
   .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
-  /* button uses vars */
-  #spinBtn{
+
+  /* Spin button + Settings button styling (identical visual treatment) */
+  .action-button{
     padding:12px 18px;font-weight:800;border-radius:12px;border:none;cursor:pointer;
     background: linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;
     box-shadow: 0 8px 22px rgba(10,30,50,0.6);
@@ -47,22 +51,22 @@
     position:relative;
   }
   @keyframes breath {
-    0% { transform: translateY(0) scale(1); box-shadow: 0 10px 26px rgba(20,60,100,0.28), 0 0 12px var(--glow-color); }
-    50% { transform: translateY(-2px) scale(1.03); box-shadow: 0 24px 48px rgba(20,60,100,0.36), 0 0 24px var(--glow-color); }
-    100% { transform: translateY(0) scale(1); box-shadow: 0 10px 26px rgba(20,60,100,0.28), 0 0 12px var(--glow-color); }
+    0% { transform: translateY(0) scale(1); box-shadow: 0 14px 32px rgba(20,60,100,0.30), 0 0 18px var(--glow-color); }
+    50% { transform: translateY(-2px) scale(1.04); box-shadow: 0 36px 72px rgba(20,60,100,0.42), 0 0 44px var(--glow-color); }
+    100% { transform: translateY(0) scale(1); box-shadow: 0 14px 32px rgba(20,60,100,0.30), 0 0 18px var(--glow-color); }
   }
-  #spinBtn.breathing { animation: breath 2800ms ease-in-out infinite; }
-  #spinBtn:hover, #spinBtn:focus { box-shadow: 0 22px 52px rgba(20,60,100,0.32), 0 0 36px var(--glow-color); transform: translateY(-2px); }
-  #spinBtn:active { transform: translateY(0); box-shadow: 0 12px 30px rgba(20,60,100,0.28), 0 0 18px var(--glow-color); }
-  #spinBtn:disabled{opacity:0.6;cursor:not-allowed;animation:none}
-  .muted{opacity:0.85;font-size:14px;color:var(--muted)}
+  .action-button.breathing { animation: breath 2600ms ease-in-out infinite; }
+  .action-button:hover { transform: translateY(-2px); box-shadow: 0 36px 72px rgba(20,60,100,0.36), 0 0 44px var(--glow-color); }
+  .action-button:active { transform: translateY(0); box-shadow: 0 16px 38px rgba(20,60,100,0.28), 0 0 18px var(--glow-color); }
+  .action-button:disabled{opacity:0.6;cursor:not-allowed;animation:none}
 
+  .muted{opacity:0.85;font-size:14px;color:var(--muted)}
   .stake-row{display:flex;gap:8px;align-items:center}
   .stake-row input[type="number"]{width:110px;padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text)}
   .quick-stakes{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:8px}
   .quick-stakes button{padding:8px 10px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer}
 
-  .settings-btn{padding:8px 10px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer;margin-left:6px}
+  .settings-btn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;cursor:pointer;margin-left:6px}
   .modal{position:fixed;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999;backdrop-filter: blur(4px)}
   .modal-panel{width:92%;max-width:720px;background:linear-gradient(180deg,var(--modal-a),var(--modal-b));padding:18px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);color:var(--text)}
   .row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
@@ -105,8 +109,8 @@
           </div>
         </div>
 
-        <button id="spinBtn" class="breathing">КРУТИ!</button>
-        <button class="settings-btn" id="openSettings">⚙</button>
+        <button id="spinBtn" class="action-button breathing">КРУТИ!</button>
+        <button id="openSettings" class="action-button settings-btn">⚙</button>
         <button class="inline-btn" id="autoSpinBtn">Auto: Off</button>
       </div>
     </section>
@@ -119,27 +123,32 @@
   <audio id="jackpotSound" src="sounds/jackpot.mp3" preload="auto"></audio>
   <audio id="bgMusic" src="sounds/bg.mp3" preload="auto" loop></audio>
 
+  <!-- settings modal -->
   <div id="settingsModal" class="modal" style="display:none">
     <div class="modal-panel">
       <h3 style="margin:0 0 12px 0">Настройки</h3>
+
       <div class="row">
         <div class="left"><label>Музыка</label></div>
         <div>
           <input type="checkbox" id="musicToggle"> Вкл
-          <input type="range" id="musicVolume" class="slider" min="0" max="1" step="0.01" value="0.3">
+          <input type="range" id="musicVolume" class="slider" min="0" max="1" step="0.01" value="0.28">
         </div>
       </div>
+
       <div class="row">
         <div class="left"><label>Звуки (эффекты)</label></div>
         <div>
           <input type="checkbox" id="soundsToggle"> Вкл
-          <input type="range" id="soundsVolume" class="slider" min="0" max="1" step="0.01" value="0.6">
+          <!-- slider removed per request -->
         </div>
       </div>
+
       <div class="row">
         <div class="left"><label>Вибрация при выигрыше</label></div>
         <div><input type="checkbox" id="vibrateToggle" checked></div>
       </div>
+
       <div class="row">
         <div class="left"><label>Тема</label></div>
         <div class="theme-options">
@@ -148,6 +157,7 @@
           <div class="theme-box" id="themeRed" style="background:linear-gradient(180deg,#3b0f12,#20080a);color:#ffd1d1">Тёмно-красная</div>
         </div>
       </div>
+
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
         <button id="closeSettings" class="inline-btn">Закрыть</button>
       </div>
@@ -157,9 +167,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 (function(){
-  /* -----------------------
-     Конфигурация
-     ----------------------- */
+  // ========== config ==========
   const REEL_COUNT = 3;
   const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
   const TOTAL_SPIN_DURATION = 7000;
@@ -169,28 +177,23 @@
   const MAX_SCALE_BOOST = 1.18;
   const SCALE_EASE = 0.16;
 
-  /* -----------------------
-     DOM
-     ----------------------- */
+  // ========== DOM ==========
   const reelArea = document.getElementById('reelArea');
   const canvas = document.getElementById('reelsCanvas');
   const ctx = canvas.getContext('2d', { alpha: true });
   const spinBtn = document.getElementById('spinBtn');
-  const messageEl = document.getElementById('message');
-  const balValueEl = document.getElementById('balValue');
-  const stakeInput = document.getElementById('stakeInput');
-  const autoSpinBtn = document.getElementById('autoSpinBtn');
   const openSettings = document.getElementById('openSettings');
   const settingsModal = document.getElementById('settingsModal');
   const closeSettings = document.getElementById('closeSettings');
   const musicToggle = document.getElementById('musicToggle');
   const musicVolume = document.getElementById('musicVolume');
   const soundsToggle = document.getElementById('soundsToggle');
-  const soundsVolume = document.getElementById('soundsVolume');
   const vibrateToggle = document.getElementById('vibrateToggle');
   const themeLight = document.getElementById('themeLight');
   const themeDark = document.getElementById('themeDark');
   const themeRed = document.getElementById('themeRed');
+  const autoSpinBtn = document.getElementById('autoSpinBtn');
+  const stakeInput = document.getElementById('stakeInput');
   const maxStakeBtn = document.getElementById('maxStakeBtn');
 
   const clickSound = document.getElementById('clickSound');
@@ -199,11 +202,9 @@
   const jackpotSound = document.getElementById('jackpotSound');
   const bgMusic = document.getElementById('bgMusic');
 
-  try { clickSound.volume=0.28; winSound.volume=0.55; loseSound.volume=0.4; jackpotSound.volume=0.75; } catch(e){}
+  try { clickSound.volume=0.28; winSound.volume=0.95; loseSound.volume=0.4; jackpotSound.volume=0.9; } catch(e){}
 
-  /* -----------------------
-     Canvas sizing & layout
-     ----------------------- */
+  // ========== canvas layout ==========
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let W=0,H=0,reelW=0,reelH=0,reelX=[];
   function computeLayout(){
@@ -211,8 +212,8 @@
     W = Math.max(320, rect.width);
     H = Math.max(120, rect.height);
     const gap = Math.min(28, W * 0.02);
-    reelW = Math.min(320, Math.max(96, Math.floor((W - gap*2) / 3)));
-    reelH = Math.min(H * 0.96, reelW * 1.08, 380);
+    reelW = Math.min(340, Math.max(96, Math.floor((W - gap*2) / 3)));
+    reelH = Math.min(H * 0.96, reelW * 1.08, 420);
     const total = reelW * REEL_COUNT + gap * (REEL_COUNT - 1);
     const startX = (W - total) / 2;
     reelX = [];
@@ -227,14 +228,11 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    // force clear to avoid leftover artifacts
     ctx.clearRect(0,0,W,H);
   }
   window.addEventListener('resize', resize);
 
-  /* -----------------------
-     Preload symbols
-     ----------------------- */
+  // ========== preload images ==========
   const SYMBOLS = [];
   for (let i=0;i<SYMBOL_FILES.length;i++){
     const img = new Image();
@@ -242,9 +240,7 @@
     SYMBOLS.push({ img, name: SYMBOL_FILES[i].split('/').pop().split('.')[0] });
   }
 
-  /* -----------------------
-     Reel model
-     ----------------------- */
+  // ========== reel model ==========
   class Reel {
     constructor(i){
       this.i = i;
@@ -258,13 +254,8 @@
         const tmp = base[k]; base[k]=base[j]; base[j]=tmp;
       }
       this.strip = base;
-      this.offset = 0;
-      this.startOffset = 0;
-      this.targetOffset = 0;
-      this.startTime = 0;
-      this.duration = 0;
-      this.spinning = false;
-      this.onComplete = null;
+      this.offset = 0; this.startOffset = 0; this.targetOffset = 0;
+      this.startTime = 0; this.duration = 0; this.spinning = false; this.onComplete = null;
       this.visualScale = 1.0;
     }
     start(finalSymbolIndex, duration){
@@ -287,12 +278,8 @@
   const reels = [];
   for (let i=0;i<REEL_COUNT;i++) reels.push(new Reel(i));
 
-  /* -----------------------
-     Helpers: read CSS vars for colors
-     ----------------------- */
-  function cssVar(name){
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '';
-  }
+  // helper to read css var
+  function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''; }
   function createBackgroundGradient(ctx, x, y, h){
     const a = cssVar('--bg-a') || '#031024';
     const b = cssVar('--bg-b') || '#061c36';
@@ -302,17 +289,13 @@
     return g;
   }
 
-  /* -----------------------
-     Draw loop
-     ----------------------- */
+  // ========== draw loop ==========
   function draw(){
-    // full clear
     ctx.clearRect(0,0,W,H);
-
     const symbolH = Math.round(reelH * 0.86);
     const centerY = H/2;
-    const glowColorCss = cssVar('--glow-color') || 'rgba(140,170,223,0.30)';
-    // compute inner background gradient once per frame
+    const glowColorCss = cssVar('--glow-color') || 'rgba(140,170,223,0.40)';
+
     for (let ri=0; ri<REEL_COUNT; ri++){
       const r = reels[ri];
       const x = reelX[ri];
@@ -327,19 +310,18 @@
         const eased = 1 - Math.pow(1 - tAdj, 3);
         r.offset = r.startOffset + (r.targetOffset - r.startOffset) * eased;
         if (tRaw >= 1 && !r.onCompleteCalled){
-          r.spinning = false;
-          r.onCompleteCalled = true;
+          r.spinning = false; r.onCompleteCalled = true;
           const totalH = symbolH * r.strip.length;
           r.offset = ((r.offset % totalH) + totalH) % totalH;
           if (typeof r.onComplete === 'function'){ r.onComplete(); r.onComplete = null; }
         }
       }
 
-      // visual scale smoothing
+      // smooth visual scale
       const targetScale = r.spinning ? MAX_SCALE_BOOST : 1.0;
       r.visualScale += (targetScale - r.visualScale) * SCALE_EASE;
 
-      // motion blur magnitude
+      // motion blur
       let motionBlur = 0;
       if (r.spinning){
         const now = performance.now();
@@ -348,37 +330,32 @@
         motionBlur = (1 - phase) * MAX_MOTION_BLUR;
       }
 
-      // --- draw outer glow (outside clip) ---
+      // outer glow (outside clip) - more noticeable (larger blur and alpha)
       if (r.visualScale > 1.005){
         ctx.save();
         ctx.shadowColor = glowColorCss;
-        ctx.shadowBlur = 28; // меньше размах — мягко и заметно
-        ctx.fillStyle = 'rgba(0,0,0,0)'; // transparent fill, just shadow
-        // draw rounded rect so shadow appears outside
-        roundRectPath(ctx, x - 8, (H - reelH)/2 - 8, reelW + 16, reelH + 16, 18);
+        ctx.shadowBlur = 64; // сильно заметнее
+        ctx.fillStyle = 'rgba(0,0,0,0)'; // transparent but shadow shows
+        roundRectPath(ctx, x - 10, (H - reelH)/2 - 10, reelW + 20, reelH + 20, 20);
         ctx.fill();
         ctx.restore();
 
-        // now mask inside with BACKGROUND (gradient) — чтобы внутри свечение не видно было
+        // mask inside with background gradient so inside matches theme
         ctx.save();
-        ctx.beginPath();
-        roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12);
-        ctx.clip();
+        ctx.beginPath(); roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12); ctx.clip();
         ctx.fillStyle = createBackgroundGradient(ctx, x, (H - reelH)/2, reelH);
         ctx.fillRect(x, (H - reelH)/2, reelW, reelH);
         ctx.restore();
       } else {
-        // no strong glow — draw inner subtle panel
+        // small inner panel
         ctx.save();
-        ctx.beginPath();
-        roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12);
-        ctx.clip();
+        ctx.beginPath(); roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12); ctx.clip();
         ctx.fillStyle = cssVar('--panel-bg') || 'rgba(3,16,28,0.52)';
         ctx.fillRect(x, (H - reelH)/2, reelW, reelH);
         ctx.restore();
       }
 
-      // --- draw symbols inside clipped region ---
+      // clip and draw symbols
       ctx.save();
       roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12);
       ctx.clip();
@@ -445,9 +422,7 @@
   function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function roundRectStroke(ctx,x,y,w,h,r){ roundRectPath(ctx,x,y,w,h,r); ctx.stroke(); }
 
-  /* -----------------------
-     Result probabilities (джекпот 1% пара 30%)
-     ----------------------- */
+  // ========== result probabilities ==========
   function generateResult(){
     const chance = Math.random()*100;
     if (chance < 1){
@@ -468,9 +443,7 @@
     }
   }
 
-  /* -----------------------
-     Spin orchestration
-     ----------------------- */
+  // ========== spin orchestration ==========
   let spinningFlag = false;
   let autoSpin = false;
   let autoSpinTimer = null;
@@ -520,7 +493,6 @@
       return SYMBOLS[r.strip[idx]].name;
     });
 
-    // payout calculation
     const stakeUsed = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
     let change = 0, msg = '';
     const allEqual = names.every(v => v === names[0]);
@@ -531,15 +503,13 @@
     } else if (anyPair){ change = stakeUsed * 2; msg = '😉 Почти — мелкий выигрыш'; if (settings.soundsEnabled) playSafe(winSound); }
     else { change = 0; msg = '🙁 Увы — попробуй ещё'; if (settings.soundsEnabled) playSafe(loseSound); }
 
-    // vibration on any positive win
+    // vibration on win
     if (change > 0 && settings.vibrationEnabled){
       try {
-        // try navigator.vibrate
         if (navigator.vibrate) {
-          if (change >= stakeUsed * 8) navigator.vibrate([60,40,60,60]);
+          if (change >= stakeUsed * 8) navigator.vibrate([70,40,70,80]);
           else navigator.vibrate([40,20,40]);
         } else if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback && typeof Telegram.WebApp.HapticFeedback.impactOccurred === 'function') {
-          // try Telegram haptic (if available)
           try { Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e){}
         }
       } catch(e){}
@@ -566,36 +536,26 @@
     }
   }
 
-  /* -----------------------
-     Settings, persistence and UI wiring
-     ----------------------- */
-  const SETTINGS_KEY = 'rc_settings_v3';
+  // ========== settings & persistence ==========
+  const SETTINGS_KEY = 'rc_settings_v4';
   let settings = {
     theme: 'dark',
     musicEnabled: false,
     musicVolume: 0.28,
     soundsEnabled: true,
-    soundsVolume: 0.6,
     vibrationEnabled: true,
     autoSpin: false
   };
 
   function loadSettings(){
-    try {
-      const raw = localStorage.getItem(SETTINGS_KEY);
-      if (raw) settings = Object.assign(settings, JSON.parse(raw));
-    } catch(e){}
-    applySettingsToUI();
-    applySettingsEffect();
+    try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) settings = Object.assign(settings, JSON.parse(raw)); } catch(e){}
+    applySettingsToUI(); applySettingsEffect();
   }
-  function saveSettings(){
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e){}
-  }
+  function saveSettings(){ try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e){} }
   function applySettingsToUI(){
     musicToggle.checked = !!settings.musicEnabled;
     musicVolume.value = settings.musicVolume ?? 0.28;
     soundsToggle.checked = !!settings.soundsEnabled;
-    soundsVolume.value = settings.soundsVolume ?? 0.6;
     vibrateToggle.checked = !!settings.vibrationEnabled;
     [themeLight, themeDark, themeRed].forEach(el => el.style.outline = 'none');
     if (settings.theme === 'light') themeLight.style.outline = '3px solid rgba(255,255,255,0.12)';
@@ -611,23 +571,29 @@
     } else {
       try { bgMusic.pause(); } catch(e){}
     }
-    // sounds volumes
-    const vol = settings.soundsEnabled ? settings.soundsVolume : 0;
-    try { clickSound.volume = Math.min(1, vol * 0.45); winSound.volume = Math.min(1, vol * 0.95); loseSound.volume = Math.min(1, vol * 0.6); jackpotSound.volume = Math.min(1, vol * 1.0); } catch(e){}
-    // vibration flag assigned
-    // theme: update css vars (including btn colors and glow)
+    // sounds: only mute toggle now (no slider) - set fixed volumes if enabled
+    if (settings.soundsEnabled){
+      try { clickSound.volume = 0.28; winSound.volume = 0.95; loseSound.volume = 0.4; jackpotSound.volume = 0.9; } catch(e){}
+    } else {
+      try { clickSound.volume = 0; winSound.volume = 0; loseSound.volume = 0; jackpotSound.volume = 0; } catch(e){}
+    }
+    // vibration flag saved
+    // theme
     applyTheme(settings.theme);
     saveSettings();
   }
+
   function applyTheme(theme){
     if (theme === 'light'){
       document.documentElement.style.setProperty('--bg-a', '#f6f8fb');
       document.documentElement.style.setProperty('--bg-b', '#ffffff');
       document.documentElement.style.setProperty('--text', '#0b1722');
       document.documentElement.style.setProperty('--panel-bg', 'rgba(255,255,255,0.96)');
-      document.documentElement.style.setProperty('--btn-a', '#f6d6c3');
-      document.documentElement.style.setProperty('--btn-b', '#c89b80');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(140,170,223,0.22)');
+      document.documentElement.style.setProperty('--btn-a', '#f3cfa8');
+      document.documentElement.style.setProperty('--btn-b', '#d1a27a');
+      document.documentElement.style.setProperty('--glow-color', 'rgba(90,140,200,0.42)');
+      document.documentElement.style.setProperty('--win-a', 'rgba(255,230,200,0.98)');
+      document.documentElement.style.setProperty('--win-b', 'rgba(255,245,240,0.96)');
       document.documentElement.style.setProperty('--modal-a', '#ffffff');
       document.documentElement.style.setProperty('--modal-b', '#fbfbfb');
     } else if (theme === 'red'){
@@ -635,9 +601,11 @@
       document.documentElement.style.setProperty('--bg-b', '#2b0c0f');
       document.documentElement.style.setProperty('--text', '#ffdede');
       document.documentElement.style.setProperty('--panel-bg', 'rgba(40,10,12,0.7)');
-      document.documentElement.style.setProperty('--btn-a', '#d76b6b');
+      document.documentElement.style.setProperty('--btn-a', '#e06a66');
       document.documentElement.style.setProperty('--btn-b', '#8b2f2f');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(200,80,90,0.28)');
+      document.documentElement.style.setProperty('--glow-color', 'rgba(220,80,90,0.46)');
+      document.documentElement.style.setProperty('--win-a', 'rgba(120,20,28,0.98)');
+      document.documentElement.style.setProperty('--win-b', 'rgba(40,8,10,0.96)');
       document.documentElement.style.setProperty('--modal-a', '#2b0c0f');
       document.documentElement.style.setProperty('--modal-b', '#150405');
     } else {
@@ -647,27 +615,27 @@
       document.documentElement.style.setProperty('--panel-bg', 'rgba(3,16,28,0.52)');
       document.documentElement.style.setProperty('--btn-a', '#91b7e7');
       document.documentElement.style.setProperty('--btn-b', '#2b5f91');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(140,170,223,0.30)');
+      document.documentElement.style.setProperty('--glow-color', 'rgba(140,170,223,0.40)');
+      document.documentElement.style.setProperty('--win-a', 'rgba(28,60,100,0.98)');
+      document.documentElement.style.setProperty('--win-b', 'rgba(6,20,34,0.96)');
       document.documentElement.style.setProperty('--modal-a', 'rgba(6,12,22,0.98)');
       document.documentElement.style.setProperty('--modal-b', 'rgba(8,18,32,0.98)');
     }
-    // update button gradient instantly
+    // update immediate visuals
     spinBtn.style.background = `linear-gradient(180deg, ${cssVar('--btn-a')}, ${cssVar('--btn-b')})`;
-    // update modal bg via CSS variable (modal-panel uses var)
+    openSettings.style.background = spinBtn.style.background;
+    // modal
     const modalPanel = document.querySelector('.modal-panel');
-    if (modalPanel) {
-      modalPanel.style.background = `linear-gradient(180deg, ${cssVar('--modal-a')}, ${cssVar('--modal-b')})`;
-    }
+    if (modalPanel) modalPanel.style.background = `linear-gradient(180deg, ${cssVar('--modal-a')}, ${cssVar('--modal-b')})`;
   }
 
-  // UI wiring
+  // ========== UI wiring ==========
   openSettings.addEventListener('click', ()=> { settingsModal.style.display = 'flex'; });
   closeSettings.addEventListener('click', ()=> { settingsModal.style.display = 'none'; applySettingsEffect(); });
 
   musicToggle.addEventListener('change', (e)=> { settings.musicEnabled = e.target.checked; applySettingsEffect(); });
-  musicVolume.addEventListener('input', (e)=> { settings.musicVolume = Number(e.target.value); applySettingsEffect(); });
-  soundsToggle.addEventListener('change', (e)=> { settings.soundsEnabled = e.target.checked; applySettingsEffect(); });
-  soundsVolume.addEventListener('input', (e)=> { settings.soundsVolume = Number(e.target.value); applySettingsEffect(); });
+  musicVolume.addEventListener('input', (e)=> { settings.musicVolume = Number(e.target.value); applySettingsEffect(); saveSettings(); });
+  soundsToggle.addEventListener('change', (e)=> { settings.soundsEnabled = e.target.checked; applySettingsEffect(); saveSettings(); });
   vibrateToggle.addEventListener('change', (e)=> { settings.vibrationEnabled = e.target.checked; saveSettings(); });
 
   themeLight.addEventListener('click', ()=> { settings.theme='light'; applySettingsToUI(); applySettingsEffect(); });
@@ -684,12 +652,8 @@
       stakeInput.value = Math.max(10, val);
     });
   });
-  maxStakeBtn.addEventListener('click', ()=> {
-    stakeInput.value = Math.max(10, currentBalance);
-  });
-  stakeInput.addEventListener('blur', ()=> {
-    stakeInput.value = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
-  });
+  maxStakeBtn.addEventListener('click', ()=> { stakeInput.value = Math.max(10, currentBalance); });
+  stakeInput.addEventListener('blur', ()=> { stakeInput.value = Math.max(10, Math.floor(Number(stakeInput.value) || 100)); });
 
   // auto-spin
   autoSpinBtn.addEventListener('click', ()=> {
@@ -701,40 +665,38 @@
     if (autoSpin && !spinningFlag) doSpin();
   });
 
-  // breathing state
-  function updateBreathing(){
-    if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing');
-    else spinBtn.classList.remove('breathing');
-  }
-
+  // spin button
   spinBtn.addEventListener('click', ()=> {
     doSpin().catch(e=>{ console.error(e); spinBtn.disabled=false; spinningFlag=false; updateBreathing(); });
     updateBreathing();
   });
 
-  // quick init values
-  const BAL_KEY = 'rc_balance_v1';
+  function updateBreathing(){ if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing'); else spinBtn.classList.remove('breathing'); }
+
+  // ========== persistence balance ==========
+  const BAL_KEY = 'rc_balance_v2';
   let currentBalance = parseInt(localStorage.getItem(BAL_KEY)) || 1000;
-  balValueEl.textContent = currentBalance;
+  document.getElementById('balValue').textContent = currentBalance;
   function saveBalance(){ localStorage.setItem(BAL_KEY, String(currentBalance)); }
 
   function playSafe(audio){ try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){} }
-  function setMessage(text, timeout=2200){ messageEl.textContent = text; if (timeout>0){ setTimeout(()=>{ messageEl.textContent = 'Готово — нажми SPIN'; }, timeout); } }
+  function setMessage(text, timeout=2200){ const m = document.getElementById('message'); m.textContent = text; if (timeout>0) setTimeout(()=>{ m.textContent = 'Готово — нажми SPIN'; }, timeout); }
+
+  // win gradient uses theme-specific vars
   function smoothWinGradient(){
-    document.body.style.transition = 'background 1000ms ease-in-out';
-    document.body.style.background = 'linear-gradient(180deg, rgba(24,52,92,0.98), rgba(6,20,34,0.96))';
-    setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },1100); }, 900);
+    const a = cssVar('--win-a') || 'rgba(28,60,100,0.98)';
+    const b = cssVar('--win-b') || 'rgba(6,20,34,0.96)';
+    document.body.style.transition = 'background 900ms ease-in-out';
+    document.body.style.background = `linear-gradient(180deg, ${a}, ${b})`;
+    setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900);
   }
 
-  // init canvas + loop
+  // ========== init loop ==========
   resize();
   requestAnimationFrame(draw);
-
-  // load settings, apply
   loadSettings();
   updateBreathing();
 
-  // resize observer
   const ro = new ResizeObserver(()=> { resize(); });
   ro.observe(reelArea);
 
@@ -742,9 +704,10 @@
     try{ Telegram.WebApp.ready(); Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" })); }catch(e){}
   }
 
-  window._rc = { reels, SYMBOLS, settings };
-
   window.addEventListener('beforeunload', ()=> { saveSettings(); saveBalance(); });
+
+  // expose debug
+  window._rc = { reels, SYMBOLS, settings };
 
 })();
 </script>

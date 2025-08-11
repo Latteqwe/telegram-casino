@@ -1,106 +1,85 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>🎰 Slots</title>
+  <meta charset="UTF-8" />
+  <title>Slots</title>
   <style>
-    body { background: #222; color: white; text-align: center; font-size: 2em; margin: 0; padding: 0; }
-    h1 { margin-top: 20px; }
-    button { font-size: 1em; padding: 10px 20px; margin-top: 20px; cursor: pointer; }
-    #balance { font-size: 1em; margin-top: 10px; color: #0f0; }
-    #message { margin-top: 10px; font-size: 1.2em; }
+    body { background: #222; color: white; text-align: center; font-size: 2em; }
+    button { font-size: 1em; padding: 10px 20px; margin-top: 20px; }
   </style>
 </head>
 <body>
   <h1>🎰 Slots</h1>
-  <div id="balance">Баланс: 0</div>
+  <div id="balance">Баланс: ...</div>
   <div id="result">🍒🍋🍊</div>
   <div id="message"></div>
-  <button id="spinBtn">SPIN</button>
+  <button onclick="spin()">SPIN</button>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    // Список символов
     const symbolsList = ["🍒", "🍋", "🍊", "🍉", "⭐", "💎"];
-    let volume = 0.3; // громкость
-    let balance = 0;
-
-    // Звуки
+    let volume = 0.3;
     const clickSound = new Audio("https://actions.google.com/sounds/v1/foley/coin_drop.ogg");
     clickSound.volume = volume;
     const winSound = new Audio("https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg");
     winSound.volume = volume;
 
-    // Telegram init
-    Telegram.WebApp.ready();
-    let user = Telegram.WebApp.initDataUnsafe?.user;
-    
-    // Запрос баланса у бота
-    if (user) {
-      Telegram.WebApp.sendData(JSON.stringify({ action: "get_balance", user_id: user.id }));
+    function updateBalanceDisplay(balance) {
+      document.getElementById('balance').textContent = `Баланс: ${balance}💰`;
     }
 
-    // Функция спина
+    Telegram.WebApp.ready();
+
+    function requestBalance() {
+      Telegram.WebApp.sendData(JSON.stringify({ action: "get_balance" }));
+    }
+
+    requestBalance();
+
     async function spin() {
-      if (balance <= 0) {
-        document.getElementById('message').textContent = "💸 Недостаточно средств!";
-        return;
-      }
-
       document.getElementById('message').textContent = "";
-      balance -= 10; // ставка
-      updateBalance();
-
       let results = generateResult();
-
       for (let col = 0; col < 3; col++) {
         await spinReel(col, results[col]);
       }
 
       let msg = "";
+      let change = -100;
       if (results[0] === results[1] && results[1] === results[2]) {
         msg = "🎉 Джекпот!";
-        winSound.currentTime = 0;
+        change = 1000;
         winSound.play().catch(() => {});
-        balance += 100;
       } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
         msg = "😉 Почти!";
-        balance += 20;
+        change = 200;
       } else {
         msg = "🙁 Не повезло!";
       }
-      updateBalance();
       document.getElementById('message').textContent = msg;
 
-      Telegram.WebApp.sendData(JSON.stringify({ action: "slot_result", result: results.join(''), user_id: user.id }));
+      Telegram.WebApp.sendData(JSON.stringify({ action: "slot_result", result: results.join(''), change }));
     }
 
-    // Анимация барабана
     async function spinReel(col, finalSymbol) {
       let slotDiv = document.getElementById('result');
       let speed = 50;
       let slowdownFactor = 1.08;
       let symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
-
       while (speed < 300) {
         let current = slotDiv.textContent.split('');
         current[col] = symbol;
         slotDiv.textContent = current.join('');
-
         clickSound.currentTime = 0;
         clickSound.play().catch(() => {});
-
         symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
         await delay(speed);
         speed *= slowdownFactor;
       }
-
       let final = slotDiv.textContent.split('');
       final[col] = finalSymbol;
       slotDiv.textContent = final.join('');
     }
 
-    // Генерация результата
     function generateResult() {
       let chance = Math.random() * 100;
       let res = [];
@@ -110,14 +89,8 @@
       } else if (chance <= 21) {
         let sym1 = symbolsList[Math.floor(Math.random() * symbolsList.length)];
         let sym2;
-        do {
-          sym2 = symbolsList[Math.floor(Math.random() * symbolsList.length)];
-        } while (sym2 === sym1);
-        if (Math.random() < 0.5) {
-          res = [sym1, sym1, sym2];
-        } else {
-          res = [sym1, sym2, sym1];
-        }
+        do { sym2 = symbolsList[Math.floor(Math.random() * symbolsList.length)]; } while (sym2 === sym1);
+        res = Math.random() < 0.5 ? [sym1, sym1, sym2] : [sym1, sym2, sym1];
       } else {
         while (res.length < 3) {
           let sym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
@@ -127,15 +100,7 @@
       return res;
     }
 
-    function updateBalance() {
-      document.getElementById('balance').textContent = "Баланс: " + balance;
-    }
-
-    function delay(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    document.getElementById('spinBtn').addEventListener('click', spin);
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
   </script>
 </body>
 </html>

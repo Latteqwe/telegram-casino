@@ -6,124 +6,33 @@
 <title>Rofl Casino — Mini App</title>
 <link rel="icon" href="images/slot.png" />
 <style>
-  /* --- БАЗОВЫЙ СТИЛЬ (из твоего оригинала, слегка подогнал) --- */
   :root{
     --bg-a: #031024;
     --bg-b: #061c36;
     --accent: rgba(140,170,223,0.85);
-    --accent-soft: rgba(140,170,223,0.18);
     --text: #cfe8ff;
     --panel: rgba(3,16,28,0.52);
   }
-  html,body{
-    height:100%;
-    margin:0;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-  }
-  body{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    background: linear-gradient(180deg, var(--bg-a), var(--bg-b));
-    font-family: "Montserrat", Arial, sans-serif;
-    color:var(--text);
-    padding:18px 12px;
-    box-sizing:border-box;
-    transition: background 800ms ease;
-  }
-
-  header {
-    width:100%;
-    max-width:960px;
-    display:flex;
-    gap:12px;
-    align-items:center;
-    justify-content:center;
-    margin-bottom:18px;
-  }
-  #logo { width:48px; height:auto; }
-  h1{
-    font-size:20px; margin:0; letter-spacing:1px;
-    color:var(--text); display:flex; align-items:center; gap:12px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
-  }
-
-  .stage { width:100%; max-width:960px; display:flex; flex-direction:column; align-items:center; gap:18px; }
-  .panel {
-    width:100%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius:14px; padding:18px; box-sizing:border-box;
-    box-shadow: 0 8px 30px rgba(1,19,38,0.5), inset 0 1px 0 rgba(255,255,255,0.02);
-  }
-
-  .top-row{ display:flex; width:100%; align-items:center; justify-content:space-between; gap:12px; }
-  #balance { padding:10px 16px; border-radius:10px; background: var(--panel); box-shadow: 0 3px 12px rgba(0,0,0,0.5); font-weight:700; }
-  #message { flex:1; margin-left:12px; text-align:center; font-weight:600; color:var(--text); min-height:22px; }
-
-  .reel-area { position:relative; display:flex; gap:16px; align-items:center; justify-content:center; padding:18px; }
-  #sparksCanvas { position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:none; z-index:2; }
-
-  .reel {
-    --size: clamp(72px, calc(16vw), 180px);
-    width:var(--size); height:var(--size);
-    border-radius:16px;
-    background: linear-gradient(145deg, rgba(2,10,20,0.65), rgba(6,20,36,0.6));
-    display:flex; align-items:center; justify-content:center;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 6px 12px rgba(255,255,255,0.02);
-    transition: transform 260ms linear, box-shadow 260ms linear;
-    z-index:3; position:relative; overflow:visible; /* overflow visible so particles not clipped by reel itself */
-  }
-
-  /* inner container to host floating imgs */
-  .reel-inner { width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; overflow:visible; }
-
-  /* image layers will be absolutely centered and animated */
-  .reel-inner img {
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform: translate(-50%,-50%) scale(1);
-    max-width:78%;
-    max-height:78%;
-    user-select:none;
-    pointer-events:none;
-    will-change: transform, filter, opacity;
-    filter: none;
-  }
-
-  .reel.active {
-    transform: scale(1.12);
-    box-shadow: 0 10px 30px rgba(24,80,120,0.55), 0 0 22px 6px var(--accent);
-    background: linear-gradient(145deg, rgba(10,22,36,0.9), rgba(6,18,30,0.95));
-  }
-
-  .reel.win { animation: winPulse 900ms ease-in-out 0s 2; }
-  @keyframes winPulse {
-    0% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); }
-    45% { box-shadow: 0 18px 60px rgba(120,190,255,0.95); transform: scale(1.18); }
-    100% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); transform: scale(1.12); }
-  }
-
-  .controls { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:8px; }
-  #spinBtn {
-    padding:12px 26px; font-weight:800; border-radius:12px; cursor:pointer; border:none;
-    background: linear-gradient(180deg, #91b7e7, #2b5f91); color:#031028;
-    box-shadow: 0 8px 22px rgba(10,30,50,0.6), inset 0 -4px 14px rgba(0,0,0,0.18);
-    transition: box-shadow 200ms ease, transform 120ms ease, background 200ms ease;
-  }
-  #spinBtn:hover { box-shadow: 0 12px 30px rgba(10,30,50,0.7), 0 0 12px var(--accent-soft); transform: translateY(-2px); }
-  #spinBtn:active { transform: translateY(0); }
-  #spinBtn:disabled { opacity:0.6; transform:none; cursor:not-allowed; }
-
-  .muted { opacity:0.85; font-size:14px; color: #bfd9ff; }
-
-  @media (max-width:520px){
-    .reel { --size: clamp(64px, 24vw, 120px); border-radius:12px; }
-    #logo { width:38px; }
-    h1 { font-size:16px; }
-  }
+  html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text);}
+  body{display:flex;flex-direction:column;align-items:center;padding:18px 12px;box-sizing:border-box;}
+  header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px;}
+  #logo{width:48px}
+  h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:12px}
+  .stage{width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center;gap:18px}
+  .panel{width:100%;border-radius:14px;padding:18px;box-sizing:border-box;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 8px 30px rgba(1,19,38,0.5)}
+  .top-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px}
+  #balance{padding:10px 16px;border-radius:10px;background:var(--panel);font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,0.5)}
+  #message{flex:1;margin-left:12px;text-align:center;font-weight:600;min-height:22px;color:var(--text)}
+  .reel-wrap{position:relative;display:flex;gap:16px;align-items:center;justify-content:center;padding:18px}
+  /* main canvas covers reels draw */
+  #reelsCanvas{width:100%;height:240px;display:block;border-radius:12px;z-index:2}
+  /* particle canvas on top of reels (pointer-events none) */
+  #sparksCanvas{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:3}
+  .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px}
+  #spinBtn{padding:12px 26px;font-weight:800;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(180deg,#91b7e7,#2b5f91);color:#031028;box-shadow:0 8px 22px rgba(10,30,50,0.6)}
+  #spinBtn:disabled{opacity:0.6;cursor:not-allowed}
+  .muted{opacity:0.85;font-size:14px;color:#bfd9ff}
+  @media (max-width:520px){#logo{width:38px} h1{font-size:16px} #reelsCanvas{height:180px}}
 </style>
 </head>
 <body>
@@ -133,19 +42,15 @@
   </header>
 
   <main class="stage">
-    <section class="panel" style="max-width:960px; width:100%;">
+    <section class="panel">
       <div class="top-row">
         <div id="balance">Баланс: <span id="balValue">1000</span> 💰</div>
         <div id="message" class="muted">Готово — нажми SPIN</div>
       </div>
 
-      <div class="reel-area" id="reelArea" style="margin-top:14px;">
+      <div class="reel-wrap" id="reelArea" style="margin-top:14px;">
+        <canvas id="reelsCanvas"></canvas>
         <canvas id="sparksCanvas"></canvas>
-
-        <!-- each reel keeps a .reel-inner where floating layers will be injected -->
-        <div class="reel" data-index="0"><div class="reel-inner"><img src="images/banana.png" alt="sym0" /></div></div>
-        <div class="reel" data-index="1"><div class="reel-inner"><img src="images/star.png" alt="sym1" /></div></div>
-        <div class="reel" data-index="2"><div class="reel-inner"><img src="images/gem.png" alt="sym2" /></div></div>
       </div>
 
       <div class="controls" style="margin-top:14px;">
@@ -160,410 +65,513 @@
   <audio id="loseSound" src="sounds/lose.mp3" preload="auto"></audio>
   <audio id="jackpotSound" src="sounds/jackpot.mp3" preload="auto"></audio>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-  (function(){
-    // -------------- CONFIG --------------
-    const TOTAL_DURATION = 9000;            // ms total for sequential spinning
-    const REEL_COUNT = 3;
-    const DURATION_PER_REEL = TOTAL_DURATION / REEL_COUNT;
-    const CHANGE_INTERVAL = 100;            // ms between symbol ticks
-    const STAKE = 100;
-    const MAX_MOTION_BLUR = 6;              // px, max container blur at start
-    const SYMBOL_LIFETIME = 700;           // ms — how long a symbol lives visually before removal
-    // particle config
-    const PARTICLE_BASE_OPACITY = 0.62;
-    const PARTICLE_FADE = 0.96;
-    const PARTICLE_SHRINK = 0.96;
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+(function(){
+  // ---------- CONFIG ----------
+  const REEL_COUNT = 3;
+  const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
+  const STAKE = 100;
+  const BASE_SPIN_DURATION = 1500; // ms (motion blur full duration)
+  const STAGGER = 260;           // ms delay between reel stops (sequential feel)
+  const MAX_MOTION_BLUR = 10;    // px max motion blur intensity at start
+  const CHANGE_INTERVAL = 80;    // ms symbol tick frequency for particle emission
+  const SYMBOL_SCALE_FAR = 0.72; // far scale
+  const SYMBOL_SCALE_NEAR = 1.0; // center scale
 
-    // -------------- DOM --------------
-    const reelEls = Array.from(document.querySelectorAll('.reel'));
-    const reelInners = reelEls.map(r => r.querySelector('.reel-inner'));
-    const spinBtn = document.getElementById('spinBtn');
-    const messageEl = document.getElementById('message');
-    const balValueEl = document.getElementById('balValue');
-    const canvas = document.getElementById('sparksCanvas');
-    const ctx = canvas.getContext('2d');
+  // ---------- DOM ----------
+  const reelsCanvas = document.getElementById('reelsCanvas');
+  const sparksCanvas = document.getElementById('sparksCanvas');
+  const reelArea = document.getElementById('reelArea');
+  const spinBtn = document.getElementById('spinBtn');
+  const messageEl = document.getElementById('message');
+  const balValueEl = document.getElementById('balValue');
+  const clickSound = document.getElementById('clickSound');
+  const winSound = document.getElementById('winSound');
+  const loseSound = document.getElementById('loseSound');
+  const jackpotSound = document.getElementById('jackpotSound');
+  try{ clickSound.volume=0.28; winSound.volume=0.55; loseSound.volume=0.4; jackpotSound.volume=0.75 }catch(e){}
 
-    // symbols (paths to your images)
-    const SYMBOLS = [
-      {name:'banana', file:'images/banana.png'},
-      {name:'star',   file:'images/star.png'},
-      {name:'gem',    file:'images/gem.png'},
-      {name:'cherry', file:'images/cherry.png'},
-      {name:'bell',   file:'images/bell.png'},
-      {name:'lemon',  file:'images/lemon.png'}
-    ];
+  // ---------- Canvas sizing ----------
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  function resizeCanvases(){
+    const rect = reelArea.getBoundingClientRect();
+    // reels canvas
+    reelsCanvas.width = Math.round(rect.width * dpr);
+    reelsCanvas.height = Math.round((rect.height) * dpr);
+    reelsCanvas.style.width = rect.width + 'px';
+    reelsCanvas.style.height = rect.height + 'px';
+    // sparks canvas overlay
+    sparksCanvas.width = Math.round(rect.width * dpr);
+    sparksCanvas.height = Math.round((rect.height) * dpr);
+    sparksCanvas.style.width = rect.width + 'px';
+    sparksCanvas.style.height = rect.height + 'px';
+    reelsCtx.setTransform(dpr,0,0,dpr,0,0);
+    sparksCtx.setTransform(dpr,0,0,dpr,0,0);
+    // recompute geometry
+    computeLayout();
+  }
+  window.addEventListener('resize', resizeCanvases);
 
-    // sounds
-    const clickSound = document.getElementById('clickSound');
-    const winSound = document.getElementById('winSound');
-    const loseSound = document.getElementById('loseSound');
-    const jackpotSound = document.getElementById('jackpotSound');
-    try { clickSound.volume = 0.28; winSound.volume = 0.55; loseSound.volume = 0.4; jackpotSound.volume = 0.75; } catch(e){}
+  // ---------- Contexts ----------
+  const reelsCtx = reelsCanvas.getContext('2d');
+  const sparksCtx = sparksCanvas.getContext('2d');
 
-    // -------------- local balance (no fetch) --------------
-    let currentBalance = parseInt(localStorage.getItem('rc_balance')) || 1000;
-    balValueEl.textContent = currentBalance;
+  // ---------- Layout ----------
+  let width=0, height=0, reelW=0, reelH=0, reelX = [];
+  function computeLayout(){
+    const rect = reelArea.getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+    // choose reel size based on available width (3 reels + gaps)
+    const gap = Math.min(28, width*0.02);
+    reelW = Math.min(180, Math.max(72, (width - gap*2) / 3));
+    reelH = Math.min(220, Math.max(72, Math.round(reelW * 1)));
+    // center vertically in available canvasheight
+    const totalReelWidth = reelW*REEL_COUNT + gap*(REEL_COUNT-1);
+    const startX = (width - totalReelWidth)/2;
+    reelX = [];
+    for (let i=0;i<REEL_COUNT;i++) reelX.push(startX + i*(reelW + gap));
+  }
 
-    function saveBalance(){ localStorage.setItem('rc_balance', String(currentBalance)); }
-    function setMessage(text, timeout=2200){
-      messageEl.textContent = text;
-      if (timeout>0){
-        setTimeout(()=>{ messageEl.textContent = 'Готово — нажми SPIN'; }, timeout);
-      }
-    }
+  // initial compute (after DOM ready)
+  computeLayout();
 
-    // -------------- Preload images (nice to have) --------------
-    SYMBOLS.forEach(s => {
-      const i = new Image();
-      i.src = s.file;
+  // ---------- Symbols preload ----------
+  const SYMBOLS = SYMBOL_FILES.map(src => {
+    const img = new Image();
+    img.src = src;
+    return {src, img, name: src.split('/').pop().split('.')[0]};
+  });
+
+  // ---------- Particles ----------
+  let particles = [];
+  function emitParticle(x,y,intensity=1){
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5)*(0.6 + intensity*1.6),
+      vy: (Math.random()-0.9)*(0.2 + intensity*0.8) - 0.6*intensity,
+      size: 1.5 + Math.random()*4*(0.6 + intensity*0.6),
+      alpha: (0.5 + Math.random()*0.2) * 0.9,
+      born: performance.now()
     });
+  }
 
-    // -------------- Particles system (canvas) --------------
-    let particles = [];
-    let canvasW = 0, canvasH = 0, rafId = null;
-
-    function resizeCanvas(){
-      const rect = document.getElementById('reelArea').getBoundingClientRect();
-      canvasW = Math.ceil(rect.width);
-      canvasH = Math.ceil(rect.height);
-      canvas.width = canvasW * devicePixelRatio;
-      canvas.height = canvasH * devicePixelRatio;
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
-      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  function updateParticles(now){
+    sparksCtx.clearRect(0,0, width, height);
+    sparksCtx.globalCompositeOperation = 'lighter';
+    for (let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.vx *= 0.995;
+      p.vy += 0.02;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha *= 0.96;
+      p.size *= 0.97;
+      if (p.alpha < 0.02 || p.size < 0.35) { particles.splice(i,1); continue; }
+      const g = sparksCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(1, p.size*3));
+      g.addColorStop(0, `rgba(170,200,255,${Math.min(1,p.alpha)})`);
+      g.addColorStop(0.6, `rgba(170,200,255,${Math.max(0,p.alpha*0.45)})`);
+      g.addColorStop(1, `rgba(170,200,255,0)`);
+      sparksCtx.fillStyle = g;
+      sparksCtx.beginPath();
+      sparksCtx.arc(p.x, p.y, Math.max(0.6,p.size), 0, Math.PI*2);
+      sparksCtx.fill();
     }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    sparksCtx.globalCompositeOperation = 'source-over';
+  }
 
-    function createParticle(x,y,intensity=1){
-      particles.push({
-        x, y,
-        vx: (Math.random()-0.5) * (0.6 + intensity*1.2),
-        vy: (Math.random()-0.8) * (0.3 + intensity*0.8),
-        size: 1.5 + Math.random()*4 * (0.6 + intensity*0.6),
-        alpha: PARTICLE_BASE_OPACITY * (0.8 + Math.random()*0.4),
-        born: performance.now()
-      });
+  // particle loop
+  let raf = null;
+  function startLoops(){
+    if (raf) return;
+    let last = performance.now();
+    function loop(now){
+      const t = now;
+      // draw reels
+      drawReels(t);
+      // update/draw particles
+      updateParticles(t);
+      raf = requestAnimationFrame(loop);
     }
+    raf = requestAnimationFrame(loop);
+  }
 
-    function emitSparksFromReelSimple(reelIndex, intensity=1, count=6){
-      const reel = reelEls[reelIndex];
-      if (!reel) return;
-      const containerRect = document.getElementById('reelArea').getBoundingClientRect();
-      const rRect = reel.getBoundingClientRect();
-      const x = (rRect.left + rRect.right)/2 - containerRect.left;
-      const y = (rRect.top + rRect.bottom)/2 - containerRect.top;
-      const spawnCount = Math.max(2, Math.round(count * (0.6 + intensity*1.4)));
-      for (let i=0;i<spawnCount;i++){
-        createParticle(x + (Math.random()-0.5)* (rRect.width*0.6), y + (Math.random()-0.5)* (rRect.height*0.6), intensity);
-      }
+  // ---------- Reel model ----------
+  // each reel holds a circular list of symbol indices; offset is in px
+  class Reel {
+    constructor(index){
+      this.index = index;
+      // create random stripe (longer than display so wrapping is smooth)
+      this.strip = [];
+      for (let i=0;i<SYMBOLS.length*6;i++) this.strip.push(Math.floor(Math.random()*SYMBOLS.length));
+      this.offset = 0; // px, positive = symbols moving down (visual)
+      this.targetOffset = 0; // where to stop
+      this.spinning = false;
+      this.startTime = 0;
+      this.duration = 0;
+      this.onComplete = null;
     }
-
-    function updateParticles(now){
-      ctx.clearRect(0,0,canvasW,canvasH);
-      ctx.globalCompositeOperation = 'lighter';
-      for (let i = particles.length-1; i>=0; i--){
-        const p = particles[i];
-        // motion
-        p.vx *= 0.995;
-        p.vy += 0.02;
-        p.x += p.vx;
-        p.y += p.vy;
-        // fade & shrink
-        p.alpha *= PARTICLE_FADE;
-        p.size *= PARTICLE_SHRINK;
-        // draw (muted color)
-        if (p.alpha < 0.02 || p.size < 0.3) { particles.splice(i,1); continue; }
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(1, p.size*3));
-        // muted blue-ish
-        g.addColorStop(0, `rgba(170,200,255,${Math.min(1,p.alpha*1.0)})`);
-        g.addColorStop(0.6, `rgba(170,200,255,${Math.max(0,p.alpha*0.45)})`);
-        g.addColorStop(1, `rgba(170,200,255,0)`);
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, Math.max(0.6,p.size), 0, Math.PI*2);
-        ctx.fill();
-      }
-      ctx.globalCompositeOperation = 'source-over';
+    startSpin(finalSymbolIndex, duration, startAt){
+      // compute how much to rotate: choose rotations count such that final aligns center
+      // symbolHeight unknown now, compute at draw time; store intended finalSymbolIndex and duration
+      this.finalIndex = finalSymbolIndex;
+      this.duration = duration;
+      this.startTime = performance.now() + (startAt||0);
+      this.spinning = true;
+      this.onCompleteCalled = false;
+      // schedule: compute targetOffset in startSpinResolve step during animation after we know symbolHeight
     }
-
-    function startParticleLoop(){
-      if (rafId) return;
-      function loop(now){
-        updateParticles(now);
-        rafId = requestAnimationFrame(loop);
-      }
-      rafId = requestAnimationFrame(loop);
+    stopNow(){
+      this.spinning = false;
     }
-    startParticleLoop();
+  }
 
-    // -------------- Utility / small helpers --------------
-    function randSym(){ return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]; }
-    function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
-    function playSafe(audio){ try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){} }
+  const reels = [];
+  for (let i=0;i<REEL_COUNT;i++) reels.push(new Reel(i));
 
-    // Create a floating img element inside a reel inner
-    function createFloatingSymbol(reelInner, symObj){
-      const img = document.createElement('img');
-      img.src = symObj.file;
-      img.alt = symObj.name;
-      // initial "far" state
-      img.style.transition = 'transform 120ms linear, filter 120ms linear, opacity 120ms linear';
-      img.style.transform = 'translate(-50%,-50%) scale(0.72)'; // far small
-      img.style.filter = 'brightness(0.75) blur(3px)';
-      img.style.opacity = '0.78';
-      reelInner.appendChild(img);
-      // next frame -> animate to center (scale 1, no blur)
-      requestAnimationFrame(()=> {
-        // slightly longer transition to feel smooth
-        img.style.transition = `transform ${Math.max(120, CHANGE_INTERVAL*0.9)}ms linear, filter ${Math.max(120, CHANGE_INTERVAL*0.9)}ms linear, opacity ${Math.max(120, CHANGE_INTERVAL*0.9)}ms linear`;
-        img.style.transform = 'translate(-50%,-50%) scale(1)';
-        img.style.filter = 'brightness(1) blur(0px)';
-        img.style.opacity = '1';
-      });
-      // schedule shrinking/fade out later (to simulate passing center -> far again)
-      const removalTimeout = setTimeout(()=> {
-        img.style.transition = 'transform 260ms linear, filter 260ms linear, opacity 260ms linear';
-        img.style.transform = 'translate(-50%,-50%) scale(0.72)';
-        img.style.filter = 'brightness(0.78) blur(3px)';
-        img.style.opacity = '0.5';
-        // remove a bit later
-        setTimeout(()=> { if (img && img.parentNode) img.parentNode.removeChild(img); }, 360);
-      }, SYMBOL_LIFETIME);
-      // safety cleanup if something else removes it early
-      img._cleanup = ()=>{ clearTimeout(removalTimeout); if (img && img.parentNode) img.parentNode.removeChild(img); };
-      return img;
-    }
+  // ---------- Easing ----------
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function easeOutQuad(t){ return 1 - (1-t)*(1-t); }
 
-    // -------------- Result generation (same logic as у тебя) --------------
-    function generateResult(){
-      const res = [];
-      const chance = Math.random()*100;
-      if (chance <= 1){
-        const sym = randSym();
-        res.push(sym,sym,sym);
-      } else if (chance <= 21){
-        const s1 = randSym();
-        let s2;
-        do { s2 = randSym(); } while (s2.name === s1.name);
-        if (Math.random() < 0.5) res.push(s1,s1,s2); else res.push(s1,s2,s1);
-      } else {
-        while(res.length < 3){
-          const s = randSym();
-          if (!res.find(r=>r.name===s.name)) res.push(s);
-        }
-      }
-      return res;
-    }
+  // ---------- Drawing reels ----------
+  let lastDraw = 0;
+  function drawReels(now){
+    // ensure geometry
+    const rect = reelArea.getBoundingClientRect();
+    if (width !== rect.width || height !== rect.height) { resizeCanvases(); }
 
-    // -------------- Spin logic (sequential per reel) --------------
-    let isSpinning = false;
+    reelsCtx.clearRect(0,0,width,height);
+    // compute symbol height relative to reelH, choose symbolHeight = reelH * 0.92
+    const symbolH = Math.round(reelH * 0.92);
+    const centerY = height/2;
 
-    async function doSpin(){
-      if (isSpinning) return;
-      if (currentBalance < STAKE) { setMessage('Недостаточно средств!', 2000); return; }
-      isSpinning = true;
-      spinBtn.disabled = true;
-      setMessage('');
-      currentBalance -= STAKE;
-      balValueEl.textContent = currentBalance;
-      saveBalance();
+    // for each reel
+    for (let ri=0; ri<REEL_COUNT; ri++){
+      const r = reels[ri];
+      const x = reelX[ri];
+      const cx = x + reelW/2;
 
-      const finalResult = generateResult();
-
-      // tell bot that app opened/spin started (keeps previous behaviour)
-      if (window.Telegram && Telegram.WebApp) {
-        try { Telegram.WebApp.sendData(JSON.stringify({ action: 'start_game' })); } catch(e){}
+      // if spin just started and we need to compute targetOffset (now that symbolH known)
+      if (r.spinning && !r._targetComputed && r.startTime <= now){
+        // find current top index stable: use current offset modulo strip length
+        const rotations = 3 + Math.floor(Math.random()*3); // full rotations
+        // final placement: choose index in strip such that symbol centers on reel center
+        // pick position in strip where symbol equals finalIndex, or just use a random position then set value
+        // We'll pick a random position near end and set that element to finalIndex
+        const targetPos = r.strip.length*2 + Math.floor(Math.random()*SYMBOLS.length);
+        // ensure strip long enough by pushing copies
+        while (r.strip.length < targetPos + 4) r.strip = r.strip.concat(r.strip);
+        r.strip[targetPos] = r.finalIndex % SYMBOLS.length;
+        // compute targetOffset: we want strip index `targetPos` to be centered -> offset such that that symbol vertical pos == centerY
+        // offset increases downward; base offset positions symbol i at y = centerY + (i*symbolH) + offset
+        // So set targetOffset so that center of that symbol is at centerY -> (centerY + (targetPos*symbolH) + targetOffset = centerY) => targetOffset = -targetPos*symbolH
+        // But add extra full rotations (so visual travel)
+        const extra = rotations * symbolH * SYMBOLS.length;
+        r.targetOffset = -targetPos * symbolH - extra;
+        // save initialOffset to animate from
+        r.initialOffset = r.offset || 0;
+        r._targetComputed = true;
       }
 
-      // sequential reels
-      for (let r=0; r<REEL_COUNT; r++){
-        const reelEl = reelEls[r];
-        const inner = reelInners[r];
-        reelEls.forEach((el, idx) => el.classList.toggle('active', idx === r));
-        const startT = performance.now();
-        const duration = DURATION_PER_REEL;
-        let elapsed = 0;
-
-        // While this reel is spinning, we insert floating symbols each tick,
-        // animate container motion-blur for first third of spin (fast part)
-        while (elapsed < duration){
-          // compute overall progress on this reel (0..1)
-          const now = performance.now();
-          elapsed = now - startT;
-          const spinProgress = Math.min(1, elapsed / duration);
-
-          // motion blur for first ~1/3 of the reel duration (smoothly decreasing)
-          let blurVal = 0;
-          const motionPhase = 0.33;
-          if (spinProgress < motionPhase){
-            blurVal = MAX_MOTION_BLUR * (1 - (spinProgress / motionPhase));
-          } else blurVal = 0;
-          // apply blur to inner container (affects whole reel visuals while fast)
-          inner.style.filter = blurVal > 0.4 ? `blur(${blurVal}px)` : '';
-
-          // create new floating symbol
-          const sym = randSym();
-          createFloatingSymbol(inner, sym);
-
-          // sound click per tick (soft)
-          playSafe(clickSound);
-
-          // spawn small particles from this reel (intensity depends on remaining)
-          const remaining = Math.max(0, duration - elapsed);
-          const intensity = Math.max(0.15, remaining / duration);
-          emitSparksFromReelSimple(r, intensity, 4);
-
-          // await next tick
-          await sleep(CHANGE_INTERVAL);
-          // loop updates elapsed at top
-        }
-
-        // set final symbol clearly (use a strong arrival)
-        // remove pending floating images to avoid overlap: we'll keep a clean visible final
-        Array.from(inner.querySelectorAll('img')).forEach(img => {
-          // quickly remove old ones
-          try{ if (img && img._cleanup) img._cleanup(); }catch(e){}
-        });
-
-        // create final big arrival
-        const finalSym = finalResult[r];
-        const finalImg = document.createElement('img');
-        finalImg.src = finalSym.file;
-        finalImg.alt = finalSym.name;
-        finalImg.style.transition = 'transform 260ms cubic-bezier(.2,.9,.2,1), filter 260ms ease, opacity 260ms ease';
-        finalImg.style.transform = 'translate(-50%,-50%) scale(0.7)';
-        finalImg.style.filter = 'brightness(0.78) blur(2px)';
-        finalImg.style.opacity = '0.9';
-        inner.appendChild(finalImg);
-
-        // animate into center
-        requestAnimationFrame(()=> {
-          finalImg.style.transform = 'translate(-50%,-50%) scale(1)';
-          finalImg.style.filter = 'brightness(1) blur(0px)';
-          finalImg.style.opacity = '1';
-        });
-
-        playSafe(clickSound);
-
-        // small burst of particles
-        for (let i=0;i<8;i++) createParticle(
-          (inner.getBoundingClientRect().left + inner.getBoundingClientRect().right)/2 - document.getElementById('reelArea').getBoundingClientRect().left + (Math.random()-0.5)*20,
-          (inner.getBoundingClientRect().top + inner.getBoundingClientRect().bottom)/2 - document.getElementById('reelArea').getBoundingClientRect().top + (Math.random()-0.5)*20,
-          0.95 + Math.random()*0.6
-        );
-
-        // keep highlighted slightly after stop
-        await sleep(140);
-        reelEl.classList.remove('active');
-      } // end reels loop
-
-      // determine outcome based on final images
-      const names = reelInners.map(inner => {
-        const topImg = inner.querySelector('img:last-of-type');
-        const src = topImg ? topImg.src.split('/').pop().split('?')[0] : '';
-        return SYMBOLS.find(s => s.file.endsWith(src))?.name || src;
-      });
-
-      // evaluate wins (same rules)
-      let change = 0;
-      let message = '';
-      const allEqual = names.every(v => v === names[0]);
-      const anyPair = (names[0] === names[1]) || (names[1] === names[2]) || (names[0] === names[2]);
-
-      if (allEqual){
-        if (names[0] === 'gem'){
-          change = 1000;
-          message = '🎉 JACKPOT!';
-          playSafe(jackpotSound);
+      // update offset if spinning
+      if (r.spinning){
+        if (now < r.startTime){
+          // haven't started yet
         } else {
-          change = 800;
-          message = '🔥 Большой выигрыш!';
-          playSafe(winSound);
-        }
-      } else if (anyPair){
-        change = 200;
-        message = '😉 Почти — мелкий выигрыш';
-        playSafe(winSound);
-      } else {
-        change = 0;
-        message = '🙁 Увы — попробуй ещё';
-        playSafe(loseSound);
-      }
-
-      if (change > 0){
-        flashBackground();
-        highlightWinningReels(names);
-      }
-
-      currentBalance += change;
-      balValueEl.textContent = currentBalance;
-      saveBalance();
-      setMessage(message, 2400);
-
-      // send result to Telegram bot (keeps previous behaviour)
-      if (window.Telegram && Telegram.WebApp){
-        try {
-          Telegram.WebApp.sendData(JSON.stringify({
-            action: 'slot_result',
-            result: names.join(','),
-            change: (change - STAKE)
-          }));
-        } catch(e){}
-      }
-
-      isSpinning = false;
-      spinBtn.disabled = false;
-    } // end doSpin
-
-    // subtle BG flash on win
-    function flashBackground(){
-      const orig = document.body.style.background;
-      document.body.style.transition = 'background 600ms ease';
-      document.body.style.background = 'linear-gradient(180deg, rgba(20,40,70,0.9), rgba(6,22,38,0.98))';
-      setTimeout(()=> { document.body.style.background = orig || 'linear-gradient(180deg, var(--bg-a), var(--bg-b))'; }, 1200);
-    }
-
-    // highlight reels that are part of a win
-    function highlightWinningReels(names){
-      if (names.every(n => n === names[0])){
-        reelEls.forEach(el => { el.classList.add('win'); setTimeout(()=> el.classList.remove('win'), 2000); });
-      } else {
-        for (let i=0;i<names.length;i++){
-          const a = names[i];
-          if (names.filter(n=>n===a).length > 1){
-            const el = reelEls[i];
-            el.classList.add('win');
-            setTimeout(()=> el.classList.remove('win'), 2000);
+          const t = Math.min(1, (now - r.startTime) / r.duration);
+          const eased = easeOutCubic(t);
+          // animate from initialOffset to targetOffset
+          if (r._targetComputed){
+            r.offset = r.initialOffset + (r.targetOffset - r.initialOffset) * eased;
+          } else {
+            // fallback: just increment offset quickly until target computed
+            r.offset -= 18; // fast fake spin (px per frame)
+          }
+          // when finished
+          if (t >= 1 && !r.onCompleteCalled){
+            r.spinning = false;
+            r.onCompleteCalled = true;
+            // normalize offset into strip range to keep numbers small
+            // compute effective index at center
+            const centerIndexFloat = -Math.round(r.offset / symbolH);
+            const modIndex = ((centerIndexFloat % r.strip.length) + r.strip.length) % r.strip.length;
+            // shift strip array so that modIndex is at position 0 for stable future spins (reduce offset to nearest)
+            // but to keep consistent behavior we will keep offsets small by adding multiples of symbolH
+            r.offset = r.offset % (r.strip.length * symbolH);
+            if (r.onComplete) r.onComplete();
           }
         }
       }
+
+      // compute current motion blur for this reel: if spinning and (now - startTime) < BASE_SPIN_DURATION -> progressive blur
+      let motionBlur = 0;
+      if (r.spinning && now >= r.startTime){
+        const elapsed = Math.max(0, now - r.startTime);
+        const phase = Math.min(1, elapsed / BASE_SPIN_DURATION);
+        motionBlur = (1 - phase) * MAX_MOTION_BLUR;
+      }
+
+      // draw reel background rounded
+      reelsCtx.save();
+      // clip to rounded rect for each reel
+      roundRect(reelsCtx, x, (height - reelH)/2, reelW, reelH, 14);
+      reelsCtx.clip();
+
+      // draw stripe of symbols near center: draw enough symbols to cover visible area (+ extra)
+      // We'll draw symbols from index start = floor(-offset/symbolH) - 3 to +3
+      const startIndex = Math.floor(-r.offset / symbolH) - 3;
+      for (let si = startIndex; si < startIndex + 12; si++){
+        const idx = ((si % r.strip.length) + r.strip.length) % r.strip.length;
+        const sym = SYMBOLS[r.strip[idx]];
+        // y center for this symbol:
+        const yCenter = centerY + (si * symbolH) + r.offset;
+        // if outside visible band, skip
+        if (yCenter < (height - reelH)/2 - symbolH || yCenter > (height + reelH)/2 + symbolH) continue;
+        // compute depth/progress (1 center -> 0 far)
+        const dist = Math.abs(yCenter - centerY);
+        const maxDist = reelH * 0.9;
+        const progress = Math.max(0, 1 - dist / maxDist); // 0..1
+        const scale = SYMBOL_SCALE_FAR + (SYMBOL_SCALE_NEAR - SYMBOL_SCALE_FAR) * progress;
+        const brightness = 0.72 + 0.28 * progress;
+        const blur = (1 - progress) * 3; // px base blur for perspective
+        const alpha = 0.5 + 0.5 * progress;
+
+        // apply additional motion blur while spinning
+        const totalBlur = blur + motionBlur;
+
+        // draw with canvas transforms
+        const img = sym.img;
+        const drawW = reelW * 0.78 * scale;
+        const drawH = symbolH * 0.88 * scale;
+        const drawX = x + reelW/2 - drawW/2;
+        const drawY = yCenter - drawH/2;
+
+        reelsCtx.save();
+        // central fade/brightness and blur via ctx.filter
+        // note: order: blur then brightness
+        const filterParts = [];
+        if (totalBlur > 0.3) filterParts.push(`blur(${totalBlur.toFixed(2)}px)`);
+        filterParts.push(`brightness(${brightness.toFixed(3)})`);
+        reelsCtx.filter = filterParts.join(' ');
+        reelsCtx.globalAlpha = Math.min(1, Math.max(0.14, alpha));
+        // subtle scale via drawImage
+        try {
+          reelsCtx.drawImage(img, drawX, drawY, drawW, drawH);
+        } catch(e){
+          // if image not ready: draw placeholder rect
+          reelsCtx.fillStyle = 'rgba(255,255,255,0.04)';
+          reelsCtx.fillRect(drawX, drawY, drawW, drawH);
+        }
+        reelsCtx.restore();
+      }
+      // restore clip
+      reelsCtx.restore();
+
+      // draw faint frame around reel
+      reelsCtx.save();
+      reelsCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+      reelsCtx.lineWidth = 1;
+      roundRect(reelsCtx, x, (height - reelH)/2, reelW, reelH, 14);
+      reelsCtx.stroke();
+      reelsCtx.restore();
     }
 
-    // -------------- Events --------------
-    spinBtn.addEventListener('click', ()=> {
-      doSpin().catch(e => { console.error(e); isSpinning=false; spinBtn.disabled=false; });
+    lastDraw = now;
+  }
+
+  // utility to draw round rect for clip/frame
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // ---------- Spin orchestration ----------
+  function generateResult(){
+    // same probabilities as before
+    const res = [];
+    const chance = Math.random()*100;
+    if (chance <= 1){
+      const sym = Math.floor(Math.random()*SYMBOLS.length);
+      return [sym,sym,sym];
+    } else if (chance <= 21){
+      const s1 = Math.floor(Math.random()*SYMBOLS.length);
+      let s2;
+      do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1);
+      if (Math.random()<0.5) return [s1,s1,s2]; else return [s1,s2,s1];
+    } else {
+      const arr = [];
+      while (arr.length < 3){
+        const s = Math.floor(Math.random()*SYMBOLS.length);
+        if (!arr.includes(s)) arr.push(s);
+      }
+      return arr;
+    }
+  }
+
+  let spinningFlag = false;
+
+  async function doSpin(){
+    if (spinningFlag) return;
+    if (currentBalance < STAKE){ setMessage('Недостаточно средств!',2000); return; }
+    spinningFlag = true;
+    spinBtn.disabled = true;
+    setMessage('');
+    currentBalance -= STAKE;
+    balValueEl.textContent = currentBalance;
+    saveBalance();
+
+    const result = generateResult();
+
+    // notify Telegram (as before)
+    if (window.Telegram && Telegram.WebApp){
+      try{ Telegram.WebApp.sendData(JSON.stringify({action:'start_game'})); }catch(e){}
+    }
+
+    // schedule each reel spin with stagger
+    const now = performance.now();
+    const promises = [];
+    for (let i=0;i<REEL_COUNT;i++){
+      const reel = reels[i];
+      // assign final symbol index
+      const finalIndex = result[i];
+      // choose duration: base plus small extra per reel
+      const duration = BASE_SPIN_DURATION + i * STAGGER; // reel0:1500, reel1:1760, reel2:2020...
+      // choose a starting delay so reels start at same time but end staggered (start earlier shorter reel?)
+      const delay = 0; // we animate stopping later by duration differences
+      reel.startSpin(finalIndex, duration, delay);
+      // attach promise to be resolved when reel finishes
+      promises.push(new Promise(res=>{
+        reel.onComplete = () => {
+          // emit final particles and small sound
+          emitSparksForReel(i, 10);
+          playSafe(clickSound);
+          res();
+        };
+      }));
+    }
+
+    // also create ticking small particles and click sounds while at least one reel spinning
+    const ticker = setInterval(()=>{
+      // find spinning reels and emit small particles
+      for (let i=0;i<REEL_COUNT;i++){
+        const r = reels[i];
+        if (r.spinning && performance.now() >= r.startTime){
+          // emit small particles near reel center
+          const rx = reelX[i] + reelW/2;
+          const ry = height/2;
+          for (let k=0;k<2;k++) emitParticle(rx + (Math.random()-0.5)*20, ry + (Math.random()-0.5)*20, 0.6);
+          try{ clickSound.currentTime = 0; clickSound.play().catch(()=>{}); }catch(e){}
+        }
+      }
+    }, CHANGE_INTERVAL);
+
+    // wait for all reels to complete (promises resolve when reel.onComplete triggers)
+    await Promise.all(promises);
+    clearInterval(ticker);
+
+    // compute names for evaluation from final center indices
+    const names = reels.map((r, i)=>{
+      // compute center index:
+      const symbolH = Math.round(reelH * 0.92);
+      const centerIndex = -Math.round(r.offset / symbolH);
+      const idx = ((centerIndex % r.strip.length) + r.strip.length) % r.strip.length;
+      return SYMBOLS[r.strip[idx]].name;
     });
 
-    // resize observer for canvas
-    const ro = new ResizeObserver(() => { resizeCanvas(); });
-    ro.observe(document.getElementById('reelArea'));
+    // evaluate win
+    const allEqual = names.every(v => v === names[0]);
+    const anyPair = (names[0] === names[1]) || (names[1] === names[2]) || (names[0] === names[2]);
+    let change = 0, message='';
+    if (allEqual){
+      if (names[0] === 'gem'){ change = 1000; message='🎉 JACKPOT!'; playSafe(jackpotSound); }
+      else { change = 800; message='🔥 Большой выигрыш!'; playSafe(winSound); }
+    } else if (anyPair){ change = 200; message='😉 Почти — мелкий выигрыш'; playSafe(winSound); }
+    else { change = 0; message='🙁 Увы — попробуй ещё'; playSafe(loseSound); }
 
-    // Telegram WebApp ready
-    if (window.Telegram && Telegram.WebApp) {
-      try { Telegram.WebApp.ready(); Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" })); }catch(e){}
+    if (change>0){ flashBackground(); highlightWinningReels(names); }
+    currentBalance += change;
+    balValueEl.textContent = currentBalance;
+    saveBalance();
+    setMessage(message,2400);
+
+    // notify bot about result
+    if (window.Telegram && Telegram.WebApp){
+      try {
+        Telegram.WebApp.sendData(JSON.stringify({ action:'slot_result', result: names.join(','), change: (change - STAKE) }));
+      } catch(e){}
     }
 
-    // initial UI state
-    balValueEl.textContent = currentBalance;
-    setMessage('Готово — нажми SPIN', 0);
+    spinningFlag = false;
+    spinBtn.disabled = false;
+  }
 
-    // keep particle loop running (already started)
-    // End of IIFE
-  })();
-  </script>
+  // emit burst for reel index
+  function emitSparksForReel(reelIndex, count=8){
+    const rx = reelX[reelIndex] + reelW/2;
+    const ry = height/2;
+    for (let i=0;i<count;i++) emitParticle(rx + (Math.random()-0.5)*30, ry + (Math.random()-0.5)*30, 0.9 + Math.random()*0.6);
+  }
+
+  // ---------- balance local ----------
+  let currentBalance = parseInt(localStorage.getItem('rc_balance')) || 1000;
+  balValueEl.textContent = currentBalance;
+  function saveBalance(){ localStorage.setItem('rc_balance', String(currentBalance)); }
+  function setMessage(text, timeout=2200){ messageEl.textContent = text; if (timeout>0) setTimeout(()=> messageEl.textContent='Готово — нажми SPIN', timeout); }
+
+  // ---------- utility ----------
+  function playSafe(audio){ try{ audio.currentTime=0; audio.play().catch(()=>{}); }catch(e){} }
+  function flashBackground(){ const orig=document.body.style.background; document.body.style.transition='background 600ms ease'; document.body.style.background='linear-gradient(180deg, rgba(20,40,70,0.9), rgba(6,22,38,0.98))'; setTimeout(()=>{ document.body.style.background=orig||'linear-gradient(180deg,var(--bg-a),var(--bg-b))' },1200); }
+  function highlightWinningReels(names){
+    // simple visual: draw overlay flash on reels by temporarily drawing glow rectangles
+    for (let i=0;i<REEL_COUNT;i++){
+      if (names.every(n=>n===names[0]) || names.filter(x=>x===names[i]).length>1){
+        // flash by drawing glow on sparks canvas briefly
+        const rx = reelX[i], ry = (height-reelH)/2, rw = reelW, rh = reelH;
+        const start = performance.now();
+        let glow = 1.0;
+        const id = setInterval(()=>{
+          // draw one translucent rect
+          sparksCtx.clearRect(0,0,width,height);
+          sparksCtx.globalCompositeOperation='lighter';
+          sparksCtx.fillStyle = `rgba(120,190,255,${0.12 * glow})`;
+          roundRectFill(sparksCtx, rx, ry, rw, rh, 14);
+          sparksCtx.globalCompositeOperation='source-over';
+          glow -= 0.06;
+          if (glow<=0){ clearInterval(id); sparksCtx.clearRect(0,0,width,height); }
+        }, 40);
+      }
+    }
+  }
+  function roundRectFill(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fill(); }
+
+  // ---------- init & start ----------
+  // initial canvas sizing
+  resizeCanvases();
+  // start loops
+  startLoops();
+
+  // wire spin button
+  spinBtn.addEventListener('click', ()=> { doSpin().catch(e=>{console.error(e);spinBtn.disabled=false;}) });
+
+  // resize observer to recompute layout
+  const ro = new ResizeObserver(()=>{ computeLayout(); resizeCanvases(); });
+  ro.observe(reelArea);
+
+  // Telegram WebApp ready
+  if (window.Telegram && Telegram.WebApp) {
+    try { Telegram.WebApp.ready(); Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" })); } catch(e){}
+  }
+
+  // Expose for debug (optional)
+  window._rc = { reels, SYMBOLS };
+
+})();
+</script>
 </body>
 </html>
-

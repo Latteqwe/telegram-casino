@@ -2,152 +2,150 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Slots с локальными звуками</title>
+  <title>🎰 Dark Slots - Вечерний кайф</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');
     body {
-      background: #222;
-      color: white;
-      text-align: center;
-      font-family: Arial, sans-serif;
-      font-size: 2em;
+      margin: 0;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #f0f0f0;
+      font-family: 'Montserrat', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       user-select: none;
+      overflow: hidden;
     }
-    #result {
-      font-size: 4em;
-      margin-top: 20px;
-      height: 1.2em;
-      letter-spacing: 10px;
-      transition: all 0.3s ease;
-    }
-    button {
-      margin-top: 25px;
-      padding: 12px 30px;
-      font-size: 1.2em;
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      background: #ffb700;
-      color: #222;
-      font-weight: bold;
-      user-select: none;
-    }
-    #message {
-      margin-top: 20px;
-      height: 1.5em;
-      font-weight: bold;
-      min-height: 1.5em;
+    h1 {
+      margin-bottom: 1rem;
+      text-shadow: 0 0 8px #ffb700;
+      font-size: 2.8rem;
+      letter-spacing: 2px;
     }
     #balance {
-      margin-top: 20px;
-      font-size: 1.5em;
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      padding: 10px 30px;
+      background: rgba(255, 183, 0, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 0 12px #ffb700aa;
+      min-width: 240px;
+      text-align: center;
+    }
+    #slots {
+      display: flex;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px 40px;
+      border-radius: 24px;
+      box-shadow:
+        inset 0 0 10px #ffb700cc,
+        0 8px 30px #ffb700aa;
+    }
+    .slot {
+      width: 80px;
+      height: 80px;
+      font-size: 3.5rem;
+      line-height: 80px;
+      text-align: center;
+      background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+      border-radius: 20px;
+      box-shadow:
+        0 4px 8px #0008,
+        inset 0 4px 6px #444;
+      user-select: none;
+      transition: transform 0.3s ease;
+    }
+    .slot.highlight {
+      box-shadow:
+        0 0 20px 6px #ffb700cc,
+        inset 0 0 15px 3px #ffb700bb;
+      transform: scale(1.15);
+    }
+    #message {
+      margin-top: 25px;
+      min-height: 2rem;
+      font-size: 1.3rem;
+      font-weight: 600;
+      text-shadow: 0 0 6px #ffb700aa;
+    }
+    #spinBtn {
+      margin-top: 30px;
+      padding: 15px 45px;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #222;
+      background: #ffb700;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow:
+        0 8px 15px #ffa500cc,
+        inset 0 3px 8px #ffd54fcc;
+      transition: background 0.3s ease, transform 0.2s ease;
+      user-select: none;
+    }
+    #spinBtn:hover {
+      background: #ffc947;
+      transform: scale(1.05);
+      box-shadow:
+        0 12px 25px #ffbb0099,
+        inset 0 4px 10px #ffe06a99;
+    }
+    #spinBtn:active {
+      transform: scale(0.95);
+      box-shadow: 0 5px 10px #ffaa0088 inset;
     }
   </style>
 </head>
 <body>
-  <h1>🎰 Slots с локальными звуками</h1>
-  <div id="balance">Баланс: 1000💰</div>
-  <div id="result">🍒🍋🍊</div>
+  <h1>🎰 Dark Slots - Вечерний кайф</h1>
+  <div id="balance">Баланс: 1000 💰</div>
+  <div id="slots">
+    <div class="slot" id="slot0">🍒</div>
+    <div class="slot" id="slot1">🍋</div>
+    <div class="slot" id="slot2">🍊</div>
+  </div>
   <div id="message"></div>
-  <button id="spinBtn">SPIN</button>
+  <button id="spinBtn">КРУТИ!</button>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     const symbolsList = ["🍒", "🍋", "🍊", "🍉", "⭐", "💎"];
     let currentBalance = 1000;
 
-    // Звуки из папки sounds (относительно страницы)
-    const spinSound = new Audio("sounds/spin.mp3");
-    const jackpotSound = new Audio("sounds/jackpot.mp3");
-    const winSound = new Audio("sounds/win.mp3");
-    const loseSound = new Audio("sounds/lose.mp3");
+    const balanceElem = document.getElementById('balance');
+    const messageElem = document.getElementById('message');
+    const spinBtn = document.getElementById('spinBtn');
+    const slots = [
+      document.getElementById('slot0'),
+      document.getElementById('slot1'),
+      document.getElementById('slot2')
+    ];
 
-    // Регулируем громкость по вкусу
+    const spinSound = new Audio("sounds/spin.mp3");
     spinSound.volume = 0.4;
+
+    const jackpotSound = new Audio("sounds/jackpot.mp3");
     jackpotSound.volume = 0.6;
+
+    const winSound = new Audio("sounds/win.mp3");
     winSound.volume = 0.5;
+
+    const loseSound = new Audio("sounds/lose.mp3");
     loseSound.volume = 0.4;
 
+    const clickSound = new Audio("sounds/click.mp3");
+    clickSound.volume = 0.3;
+
     function updateBalanceDisplay() {
-      document.getElementById('balance').textContent = `Баланс: ${currentBalance}💰`;
+      balanceElem.textContent = `Баланс: ${currentBalance} 💰`;
     }
 
-    function replaceAtEmoji(str, index, replacement) {
-      const arr = Array.from(str);
-      arr[index] = replacement;
-      return arr.join('');
-    }
-
-    Telegram.WebApp.ready();
-    Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" }));
-
-    async function spin() {
-      if (currentBalance < 100) {
-        document.getElementById('message').textContent = "❌ Недостаточно баланса для ставки!";
-        return;
-      }
-
-      document.getElementById('message').textContent = "";
-      const spinDuration = 9000; // 9 секунд прокрутки
-      const startTime = performance.now();
-
-      const finalResult = generateResult();
-
-      // Запускаем звук прокрутки (зацикленный)
-      spinSound.currentTime = 0;
-      spinSound.loop = true;
-      spinSound.play().catch(() => {});
-
-      // Анимация прокрутки
-      while (performance.now() - startTime < spinDuration) {
-        for (let col = 0; col < 3; col++) {
-          let randomSymbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
-          let currentText = document.getElementById('result').textContent;
-          document.getElementById('result').textContent = replaceAtEmoji(currentText, col, randomSymbol);
-        }
-        await delay(100);
-      }
-
-      // Останавливаем звук прокрутки
-      spinSound.pause();
-      spinSound.currentTime = 0;
-      spinSound.loop = false;
-
-      // Показываем финальный результат
-      document.getElementById('result').textContent = finalResult.join('');
-
-      // Рассчитываем выигрыш/проигрыш
-      let msg = "";
-      let change = -100; // ставка
-
-      if (finalResult[0] === finalResult[1] && finalResult[1] === finalResult[2]) {
-        msg = "🎉 Джекпот!";
-        change = 1000;
-        jackpotSound.play().catch(() => {});
-      } else if (
-        finalResult[0] === finalResult[1] ||
-        finalResult[1] === finalResult[2] ||
-        finalResult[0] === finalResult[2]
-      ) {
-        msg = "😉 Почти!";
-        change = 200;
-        winSound.play().catch(() => {});
-      } else {
-        msg = "🙁 Не повезло!";
-        loseSound.play().catch(() => {});
-      }
-
-      currentBalance += change;
-      if (currentBalance < 0) currentBalance = 0;
-      updateBalanceDisplay();
-      document.getElementById('message').textContent = msg;
-
-      Telegram.WebApp.sendData(
-        JSON.stringify({
-          action: "slot_result",
-          result: finalResult.join(''),
-          change: change,
-        })
-      );
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     function generateResult() {
@@ -172,12 +170,79 @@
       return res;
     }
 
-    function delay(ms) {
-      return new Promise(r => setTimeout(r, ms));
+    async function animateSlot(slotElem, finalSymbol) {
+      const spinCycles = 25;
+      const baseDelay = 20;
+      const maxDelay = 300;
+
+      for (let i = 0; i < spinCycles; i++) {
+        let randomSym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+        slotElem.textContent = randomSym;
+        slotElem.classList.add('highlight');
+
+        clickSound.currentTime = 0;
+        clickSound.play().catch(() => {});
+
+        let t = i / (spinCycles - 1);
+        let delayTime = baseDelay + maxDelay * t * t;
+        await delay(delayTime);
+      }
+
+      slotElem.textContent = finalSymbol;
+      slotElem.classList.remove('highlight');
     }
 
-    document.getElementById('spinBtn').addEventListener('click', spin);
+    async function spin() {
+      if (currentBalance < 100) {
+        messageElem.textContent = "❌ Недостаточно баланса для ставки!";
+        return;
+      }
+      messageElem.textContent = "";
+      currentBalance -= 100;
+      updateBalanceDisplay();
 
+      const finalResult = generateResult();
+
+      for (let i = 0; i < 3; i++) {
+        await animateSlot(slots[i], finalResult[i]);
+      }
+
+      let change = 0;
+      let msg = "";
+
+      if (finalResult[0] === finalResult[1] && finalResult[1] === finalResult[2]) {
+        msg = "🎉 Джекпот!";
+        change = 1000;
+        jackpotSound.play().catch(() => {});
+      } else if (
+        finalResult[0] === finalResult[1] ||
+        finalResult[1] === finalResult[2] ||
+        finalResult[0] === finalResult[2]
+      ) {
+        msg = "😉 Почти!";
+        change = 200;
+        winSound.play().catch(() => {});
+      } else {
+        msg = "🙁 Не повезло!";
+        change = 0;
+        loseSound.play().catch(() => {});
+      }
+
+      currentBalance += change;
+      updateBalanceDisplay();
+      messageElem.textContent = msg;
+
+      Telegram.WebApp.sendData(JSON.stringify({
+        action: "slot_result",
+        result: finalResult.join(''),
+        change: change
+      }));
+    }
+
+    spinBtn.addEventListener('click', spin);
+
+    Telegram.WebApp.ready();
+    Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" }));
     updateBalanceDisplay();
   </script>
 </body>

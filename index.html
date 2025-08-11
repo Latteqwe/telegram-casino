@@ -6,611 +6,629 @@
 <title>Rofl Casino — Mini App</title>
 <link rel="icon" href="images/slot.png" />
 <style>
-  /* --- БАЗОВЫЙ СТИЛЬ --- */
   :root{
-    --bg-a: #031024;
-    --bg-b: #061c36;
-    --accent: rgba(140,170,223,0.85); /* серо-голубой для свечения */
-    --accent-soft: rgba(140,170,223,0.18);
+    --bg-a:#020b18;
+    --bg-b:#06213c;
+    --accent: rgba(140,170,223,0.85);
     --text: #cfe8ff;
-    --panel: rgba(3,16,28,0.52);
   }
-  html,body{
-    height:100%;
-    margin:0;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-  }
-  body{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    background: linear-gradient(180deg, var(--bg-a), var(--bg-b));
-    font-family: "Montserrat", Arial, sans-serif;
-    color:var(--text);
-    padding:18px 12px;
-    box-sizing:border-box;
-    transition: background 800ms ease;
-  }
-
-  /* header */
-  header {
-    width:100%;
-    max-width:960px;
-    display:flex;
-    gap:12px;
-    align-items:center;
-    justify-content:center;
-    margin-bottom:18px;
-  }
-  #logo {
-    width:48px;
-    height:auto;
-  }
-  h1{
-    font-size:20px;
-    margin:0;
-    letter-spacing:1px;
-    color:var(--text);
-    display:flex;
-    align-items:center;
-    gap:12px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
-  }
-
-  /* main area */
-  .stage {
-    width:100%;
-    max-width:960px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:18px;
-  }
-
-  .panel {
-    width:100%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius:14px;
-    padding:18px;
-    box-sizing:border-box;
-    box-shadow: 0 8px 30px rgba(1,19,38,0.5), inset 0 1px 0 rgba(255,255,255,0.02);
-  }
-
-  /* balance & message row */
-  .top-row{
-    display:flex;
-    width:100%;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-  }
-  #balance {
-    padding:10px 16px;
-    border-radius:10px;
-    background: var(--panel);
-    box-shadow: 0 3px 12px rgba(0,0,0,0.5);
-    font-weight:700;
-  }
-  #message {
-    flex:1;
-    margin-left:12px;
-    text-align:center;
-    font-weight:600;
-    color:var(--text);
-    min-height:22px;
-  }
-
-  /* reels area */
-  .reel-area {
-    position:relative;
-    display:flex;
-    gap:16px;
-    align-items:center;
-    justify-content:center;
-    padding:18px;
-  }
-
-  /* canvas for sparks sits behind reels but inside same panel */
-  #sparksCanvas {
-    position:absolute;
-    left:0; top:0; right:0; bottom:0;
-    pointer-events:none;
-    z-index:2;
-  }
-
-  .reel {
-    --size: clamp(72px, calc(16vw), 180px);
-    width:var(--size);
-    height:var(--size);
-    border-radius:16px;
-    background: linear-gradient(145deg, rgba(2,10,20,0.65), rgba(6,20,36,0.6));
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 6px 12px rgba(255,255,255,0.02);
-    transition: transform 260ms linear, box-shadow 260ms linear;
-    z-index:3;
-    position:relative;
-    overflow:hidden;
-  }
-
-  .reel img {
-    max-width:78%;
-    max-height:78%;
-    user-select:none;
-    pointer-events:none;
-    transition: transform 200ms linear;
-    display:block;
-  }
-
-  /* active reel style (выделение серо-голубое) */
-  .reel.active {
-    transform: scale(1.12);
-    box-shadow: 0 10px 30px rgba(24,80,120,0.55), 0 0 22px 6px var(--accent);
-    background: linear-gradient(145deg, rgba(10,22,36,0.9), rgba(6,18,30,0.95));
-  }
-
-  /* highlight (вигрыш) - моргание */
-  .reel.win {
-    animation: winPulse 900ms ease-in-out 0s 2;
-  }
-  @keyframes winPulse {
-    0% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); }
-    45% { box-shadow: 0 18px 60px rgba(120,190,255,0.95); transform: scale(1.18); }
-    100% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); transform: scale(1.12); }
-  }
-
-  /* spin button */
-  .controls {
-    display:flex;
-    gap:12px;
-    align-items:center;
-    justify-content:center;
-    margin-top:8px;
-  }
-  #spinBtn {
-    padding:12px 26px;
-    font-weight:800;
-    border-radius:12px;
-    cursor:pointer;
-    border:none;
-    background: linear-gradient(180deg, #91b7e7, #2b5f91);
-    color:#031028;
-    box-shadow: 0 8px 22px rgba(10,30,50,0.6), inset 0 -4px 14px rgba(0,0,0,0.18);
-    transition: box-shadow 200ms ease, transform 120ms ease, background 200ms ease;
-  }
-  #spinBtn:hover {
-    box-shadow: 0 12px 30px rgba(10,30,50,0.7), 0 0 12px var(--accent-soft);
-    transform: translateY(-2px);
-  }
-  #spinBtn:active { transform: translateY(0); }
-
-  /* small helper */
-  .muted {
-    opacity:0.85;
-    font-size:14px;
-    color: #bfd9ff;
-  }
-
-  /* responsive tweaks */
-  @media (max-width:520px){
-    .reel { --size: clamp(64px, 24vw, 120px); border-radius:12px; }
-    #logo { width:38px; }
-    h1 { font-size:16px; }
+  html,body{height:100%;margin:0;padding:0;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));font-family: "Montserrat", Arial, sans-serif;color:var(--text);-webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+  .wrap{box-sizing:border-box;padding:14px;display:flex;flex-direction:column;align-items:center;gap:12px;height:100vh;}
+  header{display:flex;align-items:center;gap:12px}
+  #logo{height:44px}
+  h1{margin:0;font-size:20px;letter-spacing:1px}
+  .panel{width:100%;max-width:960px;background:rgba(255,255,255,0.02);border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  #balance{background:rgba(3,16,28,0.6);padding:8px 14px;border-radius:10px;font-weight:700}
+  #message{color:#bcdcff;font-weight:600;min-height:22px;text-align:center}
+  /* canvas container */
+  #gameArea{position:relative;width:100%;height:48vh;min-height:320px;display:flex;align-items:center;justify-content:center}
+  /* fallback (visible for non-canvas) */
+  .controls{display:flex;gap:12px;justify-content:center;align-items:center}
+  #spinBtn{padding:12px 26px;border-radius:12px;border:none;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#91b7e7,#2b5f91);color:#031028;box-shadow:0 8px 22px rgba(10,30,50,0.6)}
+  #spinBtn:active{transform:translateY(1px)}
+  @media(max-width:520px){
+    #logo{height:36px}
+    h1{font-size:16px}
+    #gameArea{height:44vh}
   }
 </style>
 </head>
 <body>
-  <header>
-    <img id="logo" src="images/slot.png" alt="Rofl" />
-    <h1>Rofl Casino</h1>
-  </header>
+  <div class="wrap">
+    <header>
+      <img id="logo" src="images/slot.png" alt="Rofl" />
+      <h1>Rofl Casino</h1>
+    </header>
 
-  <main class="stage">
-    <section class="panel" style="max-width:960px; width:100%;">
-      <div class="top-row">
+    <div class="panel" style="width:100%">
+      <div class="top">
         <div id="balance">Баланс: <span id="balValue">1000</span> 💰</div>
-        <div id="message" class="muted">Готово — нажми SPIN</div>
+        <div id="message">Готово — нажми КРУТИ!</div>
       </div>
 
-      <div class="reel-area" id="reelArea" style="margin-top:14px;">
-        <canvas id="sparksCanvas"></canvas>
-        <div class="reel" data-index="0"><img src="images/banana.png" alt="sym0" /></div>
-        <div class="reel" data-index="1"><img src="images/star.png" alt="sym1" /></div>
-        <div class="reel" data-index="2"><img src="images/gem.png" alt="sym2" /></div>
-      </div>
+      <div id="gameArea" aria-hidden="false"></div>
 
-      <div class="controls" style="margin-top:14px;">
+      <div class="controls">
         <button id="spinBtn">КРУТИ!</button>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
-  <!-- Звуки: берем из папки sounds/ (как попросил) -->
+  <!-- sounds from sounds/ (user said they are present) -->
   <audio id="clickSound" src="sounds/click.mp3" preload="auto"></audio>
   <audio id="winSound" src="sounds/win.mp3" preload="auto"></audio>
   <audio id="loseSound" src="sounds/lose.mp3" preload="auto"></audio>
   <audio id="jackpotSound" src="sounds/jackpot.mp3" preload="auto"></audio>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- PIXI -->
+  <script src="https://pixijs.download/release/pixi.min.js"></script>
+
   <script>
-/* ============================
-   Rofl Casino — index.html
-   - готово для Telegram Mini App
-   - звуки в папке sounds/
-   - картинки в папке images/
-   ============================ */
+  /* -----------------------------
+     Rofl Casino — PixiJS index.html
+     Features:
+     - uses images from images/
+     - uses sounds from sounds/
+     - 3D illusion: scale/alpha/blur by distance to center
+     - motion blur during fast spin
+     - particles (soft, fade-out, no clipping)
+     - sequential reel stops, total ~9s
+     - micro-bounce on stop
+     ------------------------------ */
 
-(function(){
-  // --- Настройки ---
-  const TOTAL_DURATION = 9000; // общая длительность последовательного кручения (ms)
-  const REEL_COUNT = 3;
-  const DURATION_PER_REEL = TOTAL_DURATION / REEL_COUNT; // 3000,3000,3000
-  const CHANGE_INTERVAL = 100; // ms между сменами символов (линейно)
-  const STAKE = 100; // ставка за спин (локально отображается и отправляется боту в change)
+  (async function(){
+    // ---------- CONFIG ----------
+    const REEL_COUNT = 3;
+    const SYMBOL_FILES = [
+      'images/banana.png',
+      'images/star.png',
+      'images/gem.png',
+      'images/cherry.png',
+      'images/bell.png',
+      'images/lemon.png'
+    ];
+    const START_BALANCE = 1000;
+    const STAKE = 100;
+    const TOTAL_DURATION = 9000; // ms total sequence
+    const PER_REEL = TOTAL_DURATION / REEL_COUNT; // 3000
+    const TICK_MS = 80; // symbol swap interval while spinning
+    // visual tuning
+    const VISIBLE_SPRITES = 7; // sprites per reel vertically (odd number preferred)
+    const CENTER_INDEX = Math.floor(VISIBLE_SPRITES/2);
+    // depth effect tuning
+    const MAX_SCALE_DIFF = 0.36; // how much smaller far items are
+    const MAX_ALPHA_DIFF = 0.5;  // how much more transparent at edges
+    const MAX_BLUR = 6; // px blur at furthest
+    const MOTION_BLUR_MULT = 0.08; // multiplier to convert speed -> blur
 
-  // Sparks mode toggle (S key): "active" or "all"
-  let sparksMode = "active"; // default
-  console.log("sparksMode:", sparksMode);
+    // particles tuning
+    const PARTICLE_RATE = 4; // base particles per tick
+    const PARTICLE_FADE = 900; // ms
 
-  // --- DOM ---
-  const reelEls = Array.from(document.querySelectorAll('.reel'));
-  const reelImgs = reelEls.map(r => r.querySelector('img'));
-  const spinBtn = document.getElementById('spinBtn');
-  const messageEl = document.getElementById('message');
-  const balValueEl = document.getElementById('balValue');
+    // audio elements
+    const clickAudio = document.getElementById('clickSound');
+    const winAudio = document.getElementById('winSound');
+    const loseAudio = document.getElementById('loseSound');
+    const jackpotAudio = document.getElementById('jackpotSound');
+    try { clickAudio.volume = 0.28; winAudio.volume = 0.55; loseAudio.volume = 0.4; jackpotAudio.volume = 0.75; } catch(e){}
 
-  // --- Symbols (images in images/) ---
-  const SYMBOLS = [
-    {name:'banana', file:'images/banana.png'},
-    {name:'star',   file:'images/star.png'},
-    {name:'gem',    file:'images/gem.png'},
-    {name:'cherry', file:'images/cherry.png'},
-    {name:'bell',   file:'images/bell.png'},
-    {name:'lemon',  file:'images/lemon.png'}
-  ];
+    // DOM refs
+    const gameArea = document.getElementById('gameArea');
+    const spinBtn = document.getElementById('spinBtn');
+    const balEl = document.getElementById('balValue');
+    const messageEl = document.getElementById('message');
 
-  // --- Sounds (from sounds/ as requested) ---
-  const clickSound = document.getElementById('clickSound');
-  const winSound = document.getElementById('winSound');
-  const loseSound = document.getElementById('loseSound');
-  const jackpotSound = document.getElementById('jackpotSound');
+    let balance = START_BALANCE;
+    balEl.textContent = balance;
 
-  // volume tweaks (можешь подправить)
-  try { clickSound.volume = 0.28; winSound.volume = 0.55; loseSound.volume = 0.4; jackpotSound.volume = 0.75; } catch(e){}
-
-  // --- Telegram WebApp init ---
-  if (window.Telegram && Telegram.WebApp) {
-    Telegram.WebApp.ready();
-    // сообщаем боту, что веб-приложение открылось (может вернуть баланс через сообщения бота)
-    Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" }));
-  }
-
-  // --- Particles (Canvas) ---
-  const canvas = document.getElementById('sparksCanvas');
-  const ctx = canvas.getContext('2d');
-  let particles = [];
-  let canvasW = 0, canvasH = 0, rafId = null;
-
-  function resizeCanvas(){
-    const rect = document.getElementById('reelArea').getBoundingClientRect();
-    canvasW = Math.ceil(rect.width);
-    canvasH = Math.ceil(rect.height);
-    canvas.width = canvasW * devicePixelRatio;
-    canvas.height = canvasH * devicePixelRatio;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
-    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-  }
-  window.addEventListener('resize', () => {
-    resizeCanvas();
-  });
-  resizeCanvas();
-
-  function emitSparksFromReel(reelIndex, intensity = 1) {
-    // compute spawn point: center of reel relative to canvas
-    const reel = reelEls[reelIndex];
-    if (!reel) return;
-    const containerRect = document.getElementById('reelArea').getBoundingClientRect();
-    const rRect = reel.getBoundingClientRect();
-    const x = (rRect.left + rRect.right)/2 - containerRect.left;
-    const y = (rRect.top + rRect.bottom)/2 - containerRect.top;
-
-    // emit a few particles based on intensity
-    const count = Math.max(1, Math.round(2 + intensity * 6));
-    for(let i=0;i<count;i++){
-      createParticle(x + (Math.random()-0.5)*20, y + (Math.random()-0.5)*20, intensity);
-    }
-  }
-
-  function createParticle(x, y, intensity) {
-    const angle = (Math.random()*Math.PI*2);
-    const speed = 0.5 + Math.random()*2.2 + intensity*1.8;
-    const vx = Math.cos(angle) * speed * (0.6 + Math.random()*0.8);
-    const vy = Math.sin(angle) * speed * (0.6 + Math.random()*0.8) - 1.2 * intensity;
-    const life = 600 + Math.random()*900;
-    const size = 2 + Math.random()*6 * (0.8 + intensity*0.6);
-    particles.push({
-      x, y, vx, vy, alpha: 0.95, life, born: performance.now(), size,
-      color: `rgba(170,200,255,${0.9 + Math.random()*0.1})`
+    // Pixi app (resize to container)
+    const app = new PIXI.Application({
+      resizeTo: gameArea,
+      backgroundAlpha: 0,
+      antialias: true,
+      resolution: devicePixelRatio || 1
     });
-  }
+    gameArea.appendChild(app.view);
 
-  function updateParticles(now){
-    // update and draw
-    ctx.clearRect(0,0,canvasW,canvasH);
-    // use additive blending for glow
-    ctx.globalCompositeOperation = 'lighter';
-    for(let i = particles.length-1; i>=0; i--){
-      const p = particles[i];
-      const t = now - p.born;
-      if (t > p.life || p.alpha <= 0.01) { particles.splice(i,1); continue; }
-      // physics
-      p.vx *= 0.995;
-      p.vy += 0.015; // gravity slight
-      p.x += p.vx;
-      p.y += p.vy;
-      // fade
-      p.alpha = Math.max(0, 1 - t / p.life);
-      // draw
-      ctx.beginPath();
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size*2);
-      g.addColorStop(0, p.color.replace(/[\d\.]+\)$/,'1)'));
-      g.addColorStop(0.4, p.color.replace(/[\d\.]+\)$/,'0.65)'));
-      g.addColorStop(1, p.color.replace(/[\d\.]+\)$/,'0)'));
-      ctx.fillStyle = g;
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.globalCompositeOperation = 'source-over';
-  }
-
-  function startParticleLoop(){
-    let last = performance.now();
-    function loop(now){
-      updateParticles(now);
-      rafId = requestAnimationFrame(loop);
-    }
-    if (!rafId) rafId = requestAnimationFrame(loop);
-  }
-  function stopParticleLoop(){
-    if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
-  }
-  startParticleLoop();
-
-  // --- Utilities ---
-  function randSym(){ return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]; }
-  function setMessage(text, timeout=2200){
-    messageEl.textContent = text;
-    if (timeout>0){ setTimeout(()=>{ messageEl.textContent = 'Готово — нажми SPIN'; }, timeout); }
-  }
-  function playSafe(audio){
-    try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){}
-  }
-
-  // --- Spin logic (sequential reels, linear timing) ---
-  let isSpinning = false;
-  let currentBalance = 1000;
-  balValueEl.textContent = currentBalance;
-
-  function generateResult(){
-    // probabilities similar to prior design: 1% jackpot, 20% pair, else all distinct
-    const res = [];
-    let chance = Math.random()*100;
-    if (chance <= 1){
-      const sym = randSym();
-      res.push(sym,sym,sym);
-    } else if (chance <= 21){
-      const s1 = randSym();
-      let s2;
-      do { s2 = randSym(); } while (s2.name === s1.name);
-      // randomize positions
-      if (Math.random() < 0.5) res.push(s1,s1,s2); else res.push(s1,s2,s1);
-    } else {
-      // three distinct
-      while(res.length < 3){
-        const s = randSym();
-        if (!res.find(r=>r.name===s.name)) res.push(s);
-      }
-    }
-    return res;
-  }
-
-  async function doSpin(){
-    if (isSpinning) return;
-    isSpinning = true;
-    spinBtn.disabled = true;
-    setMessage('');
-    currentBalance -= STAKE;
-    balValueEl.textContent = currentBalance;
-
-    // prepare final result
-    const finalResult = generateResult();
-
-    // send start_game event (bot might respond with balance separately)
-    if (window.Telegram && Telegram.WebApp){
-      Telegram.WebApp.sendData(JSON.stringify({ action: 'start_game' }));
+    // stage layout parameters
+    function layout(){
+      // container width inside app.renderer
+      const w = app.renderer.width;
+      const h = app.renderer.height;
+      // compute reel spacing
+      const reelWidth = Math.min(180, Math.max(64, Math.floor(w / (REEL_COUNT + 1.5))));
+      return {w,h,reelWidth};
     }
 
-    // For each reel sequentially:
-    for (let r = 0; r < REEL_COUNT; r++){
-      const reelEl = reelEls[r];
-      const imgEl = reelImgs[r];
-      // set active highlight on this reel only
-      reelEls.forEach((el, idx) => el.classList.toggle('active', idx === r));
+    // preloader textures
+    const loader = new PIXI.Loader();
+    SYMBOL_FILES.forEach(f => loader.add(f));
+    loader.add('slotLogo', 'images/slot.png');
+    await new Promise((res, rej) => loader.load((l, r) => res()));
 
-      const startT = performance.now();
-      const duration = DURATION_PER_REEL; // linear
-      let elapsed = 0;
+    // create containers for reels
+    const reelsContainer = new PIXI.Container();
+    app.stage.addChild(reelsContainer);
 
-      // number of ticks determined by CHANGE_INTERVAL (linear)
-      // We'll change symbol every CHANGE_INTERVAL ms, play click and emit particles.
-      while (elapsed < duration){
-        // change symbol
-        const sym = randSym();
-        imgEl.src = sym.file;
-        imgEl.alt = sym.name;
-        playSafe(clickSound);
+    // particle container on top
+    const particlesContainer = new PIXI.Container();
+    app.stage.addChild(particlesContainer);
 
-        // particles intensity scaled by remaining relative speed: bigger when just started
-        const remaining = Math.max(0, duration - elapsed);
-        const intensity = Math.max(0.15, remaining / duration); // 1 -> 0
-        // spawn particles depending on sparksMode
-        if (sparksMode === 'all'){
-          for (let i=0;i<REEL_COUNT;i++) emitSparksFromReel(i, intensity);
-        } else {
-          emitSparksFromReel(r, intensity);
+    // filters
+    const globalBlurFilter = new PIXI.filters.BlurFilter(0);
+    app.stage.filters = []; // we'll use per-sprite blur for depth illusion
+
+    // data structures
+    const reels = [];
+
+    // helper to create a sprite for a symbol
+    function createSymbolSprite(texture){
+      const sprite = new PIXI.Sprite(texture);
+      sprite.anchor.set(0.5);
+      sprite.scale.set(1);
+      sprite.texture.baseTexture.scaleMode = PIXI.SCALE_MODES.LINEAR;
+      // allow per-sprite filters
+      sprite.filters = [];
+      return sprite;
+    }
+
+    // Build reels
+    function buildReels(){
+      reelsContainer.removeChildren();
+      reels.length = 0;
+      const {w,h,reelWidth} = layout();
+      const spacing = reelWidth + Math.floor(reelWidth*0.1);
+      const startX = (w - ((REEL_COUNT-1)*spacing + reelWidth))/2;
+      const centerY = h/2;
+
+      for(let r=0;r<REEL_COUNT;r++){
+        const reelC = new PIXI.Container();
+        reelC.x = startX + r * spacing + reelWidth/2;
+        reelC.y = centerY;
+        reelC.reelWidth = reelWidth;
+        reelC.centerY = centerY;
+        reelsContainer.addChild(reelC);
+
+        // create a vertical stack of visible sprites (VISIBLE_SPRITES)
+        const textureList = SYMBOL_FILES.map(f => PIXI.Texture.from(f));
+        const sprites = [];
+        const slotH = reelWidth; // roughly square
+        const step = slotH * 0.85; // spacing between sprites
+        const startOffset = -CENTER_INDEX * step;
+
+        for (let i = 0; i < VISIBLE_SPRITES; i++){
+          const tex = textureList[Math.floor(Math.random()*textureList.length)];
+          const s = createSymbolSprite(tex);
+          s.x = 0;
+          s.y = startOffset + i * step;
+          reelC.addChild(s);
+          sprites.push(s);
         }
 
-        // wait linear interval
-        await new Promise(res => setTimeout(res, CHANGE_INTERVAL));
-        elapsed = performance.now() - startT;
+        reels.push({
+          container: reelC,
+          sprites,
+          speed: 0, // px/ms
+          spinning: false,
+          ticker: null
+        });
       }
-
-      // final symbol for this reel - set it and play final click
-      imgEl.src = finalResult[r].file;
-      imgEl.alt = finalResult[r].name;
-      playSafe(clickSound);
-
-      // small final particle burst
-      for (let i=0;i<6;i++) emitSparksFromReel(r, 0.9 + Math.random()*0.6);
-
-      // keep reel highlighted slightly after stop (but then removed before next active)
-      await new Promise(res => setTimeout(res, 120)); // tiny pause
-      // remove the active on this reel before next loop (next will set its own active)
-      reelEl.classList.remove('active');
     }
 
-    // all reels stopped — compute result
-    const names = reelImgs.map(i => {
-      const src = i.src || '';
-      const fname = src.split('/').pop().split('?')[0];
-      // find symbol by file name
-      return SYMBOLS.find(s => s.file.endsWith(fname))?.name || fname;
+    buildReels();
+    app.renderer.resize(app.view.width, app.view.height);
+
+    // adjust visuals per frame: scale/alpha/blur depending on sprite.y distance to center
+    function updateDepthVisuals(){
+      for (let r=0;r<reels.length;r++){
+        const reel = reels[r];
+        const step = (reel.sprites[1].y - reel.sprites[0].y) || 1;
+        for (let s of reel.sprites){
+          // normalized distance: 0 center, 1 at farthest shown
+          const dist = Math.abs(s.y) / (Math.abs(step)*CENTER_INDEX);
+          const norm = Math.min(1, dist);
+          // scale interpolates from 1 (center) down to (1 - MAX_SCALE_DIFF)
+          const scale = 1 - MAX_SCALE_DIFF * norm;
+          s.scale.set(scale);
+          // alpha slightly lower at edges
+          s.alpha = 1 - MAX_ALPHA_DIFF * norm;
+          // subtle tint darkening at edges: use tint by multiplying (simple)
+          const tintVal = Math.floor(0xFFFFFF * (0.7 + 0.3*(1 - norm))); // center brighter
+          s.tint = 0xFFFFFF; // keep color, rely on alpha and blur for depth
+          // blur: create or reuse blur filter per sprite
+          const blurAmount = MAX_BLUR * norm;
+          if (!s._blurFilter){
+            s._blurFilter = new PIXI.filters.BlurFilter(blurAmount);
+            s.filters = [s._blurFilter];
+          } else {
+            s._blurFilter.blur = blurAmount;
+          }
+          // slight vertical skew or brightness could be added, but keep performance
+        }
+      }
+    }
+
+    // call on resize too
+    window.addEventListener('resize', () => {
+      // rebuild layout when size changes to adjust spacing
+      const {w,h,reelWidth} = layout();
+      // reposition reels
+      const spacing = reelWidth + Math.floor(reelWidth*0.1);
+      const startX = (w - ((REEL_COUNT-1)*spacing + reelWidth))/2;
+      const centerY = h/2;
+      for (let r=0;r<reels.length;r++){
+        const reel = reels[r];
+        reel.container.x = startX + r * spacing + reelWidth/2;
+        reel.container.y = centerY;
+        // reposition sprites step
+        const step = reelWidth * 0.85;
+        const startOffset = -CENTER_INDEX * step;
+        for (let i=0;i<reel.sprites.length;i++){
+          reel.sprites[i].y = startOffset + i*step;
+        }
+      }
+      updateDepthVisuals();
     });
 
-    // check win types
-    let change = 0;
-    let message = '';
-    const allEqual = names.every(v => v === names[0]);
-    const anyPair = (names[0] === names[1]) || (names[1] === names[2]) || (names[0] === names[2]);
+    // Utility: play safe
+    function playSafe(audio){
+      try{ audio.currentTime = 0; audio.play().catch(()=>{}); } catch(e){}
+    }
 
-    if (allEqual){
-      // jackpot if gem, else big win
-      if (names[0] === 'gem'){
-        change = 1000;
-        message = '🎉 JACKPOT!';
-        playSafe(jackpotSound);
+    // Particle system (soft particles, fade out)
+    const particles = [];
+    function spawnParticle(x,y, vx,vy, life, size, col){
+      particles.push({x,y,vx,vy,life,born:performance.now(),size,col});
+    }
+    function updateParticles(now, dt){
+      const ctx = particlesContainer;
+      // Clear container children and redraw (using Graphics per particle could be heavy; use simple sprites via PIXI.Graphics cached textures)
+      particlesContainer.removeChildren();
+      for (let i = particles.length-1; i >=0; i--){
+        const p = particles[i];
+        const age = now - p.born;
+        if (age > p.life){ particles.splice(i,1); continue; }
+        const t = 1 - age / p.life;
+        // draw as small sprite via Graphics
+        const g = new PIXI.Graphics();
+        const alpha = t * 0.6; // more transparent
+        const size = p.size * (0.6 + 0.4*(1-t));
+        g.beginFill(p.col, alpha);
+        g.drawCircle(0,0,size);
+        g.endFill();
+        g.x = p.x;
+        g.y = p.y;
+        // slight glow using blur filter on graphics; cheap alternative: use alpha
+        g.alpha = alpha;
+        particlesContainer.addChild(g);
+        // integrate
+        p.vx *= 0.995;
+        p.vy += 0.02;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+      }
+    }
+
+    // function to emit particles from reel center
+    function emitParticlesFromReel(reelIndex, intensity=1){
+      const rc = reels[reelIndex];
+      const globalPos = rc.container.toGlobal(new PIXI.Point(0,0)); // center
+      const baseX = globalPos.x;
+      const baseY = globalPos.y;
+      const count = Math.round(PARTICLE_RATE * (1 + intensity*2));
+      for (let i=0;i<count;i++){
+        const angle = (Math.random()-0.5)*Math.PI; // mostly upward and sideways
+        const speed = (0.8 + Math.random()*1.8) * (0.8 + intensity*0.9);
+        const vx = Math.cos(angle) * speed * (Math.random()*1.2);
+        const vy = Math.sin(angle) * speed * (Math.random()*0.8) - 0.6*intensity;
+        const life = PARTICLE_FADE * (0.6 + Math.random()*0.9);
+        const size = 2 + Math.random()*5;
+        spawnParticle(baseX + (Math.random()-0.5)*30, baseY + (Math.random()-0.5)*30, vx, vy, life, size, 0xaad0ff);
+      }
+    }
+
+    // Spin controller: sequential spinning with deceleration to land on target symbols
+    let isSpinning = false;
+
+    function generateFinalSymbols(){
+      // same RNG logic as earlier: 1% triple, 20% pair, else distinct
+      const rand = Math.random()*100;
+      if (rand <= 1){
+        const s = SYMBOL_FILES[Math.floor(Math.random()*SYMBOL_FILES.length)];
+        return [s,s,s];
+      } else if (rand <= 21){
+        const s1 = SYMBOL_FILES[Math.floor(Math.random()*SYMBOL_FILES.length)];
+        let s2;
+        do { s2 = SYMBOL_FILES[Math.floor(Math.random()*SYMBOL_FILES.length)]; } while (s2 === s1);
+        if (Math.random() < 0.5) return [s1,s1,s2];
+        return [s1,s2,s1];
       } else {
-        change = 800;
-        message = '🔥 Большой выигрыш!';
-        playSafe(winSound);
+        const chosen = [];
+        while (chosen.length < 3){
+          const s = SYMBOL_FILES[Math.floor(Math.random()*SYMBOL_FILES.length)];
+          if (!chosen.includes(s)) chosen.push(s);
+        }
+        return chosen;
       }
-    } else if (anyPair){
-      change = 200;
-      message = '😉 Почти — мелкий выигрыш';
-      playSafe(winSound);
-    } else {
-      change = 0;
-      message = '🙁 Увы — попробуй ещё';
-      playSafe(loseSound);
     }
 
-    // subtle background shift on any non-zero win
-    if (change > 0){
-      flashBackground();
-      // highlight winning reels (if pair or triple)
-      highlightWinningReels(names);
-    }
+    // core spin routine (async)
+    async function spinAll(){
+      if (isSpinning) return;
+      isSpinning = true;
+      spinBtn.disabled = true;
+      messageEl.textContent = '';
+      balance -= STAKE;
+      balEl.textContent = balance;
 
-    // update balance locally and display
-    currentBalance += change;
-    balValueEl.textContent = currentBalance;
-    setMessage(message, 2400);
+      const finals = generateFinalSymbols();
 
-    // send result to Telegram bot (so bot can persist to server)
-    if (window.Telegram && Telegram.WebApp){
-      Telegram.WebApp.sendData(JSON.stringify({
-        action: 'slot_result',
-        result: names.join(','),
-        change: (change - STAKE) // net change? earlier protocol used change - make clear negative stake maybe
-      }));
-    }
+      // inform bot start
+      if (window.Telegram && Telegram.WebApp) Telegram.WebApp.sendData(JSON.stringify({action:'start_game'}));
 
-    // stop any extra particles gradually
-    // allow particles to fade naturally; keep loop running
-    isSpinning = false;
-    spinBtn.disabled = false;
-  } // end doSpin
+      // for temporal control, each reel runs for PER_REEL ms, sequential start (we'll start reel0 immediately, reel1 after 200ms, reel2 after 400ms for nicer stagger)
+      const startDelays = [0, 200, 400];
+      const reelPromises = [];
 
-  // flash background lightly on win (subtle bluish tone) - revert after short time
-  function flashBackground(){
-    const orig = document.body.style.background;
-    // gentle bluish gradient (very subtle)
-    document.body.style.transition = 'background 600ms ease';
-    document.body.style.background = 'linear-gradient(180deg, rgba(20,40,70,0.9), rgba(6,22,38,0.98))';
-    // slight overlay via box-shadow on panel could be added — we do simple background change
-    setTimeout(() => {
-      document.body.style.background = '';
-    }, 1200);
-  }
+      for (let r = 0; r < REEL_COUNT; r++){
+        const promise = new Promise(resolve => {
+          setTimeout(()=> {
+            spinSingleReel(r, finals[r], resolve);
+          }, startDelays[r]);
+        });
+        reelPromises.push(promise);
+      }
 
-  // highlight winning reels with gentle pulse (morganie), can be removed quickly if needed
-  function highlightWinningReels(names){
-    // determine winners
-    if (names.every(n => n === names[0])) {
-      // all same -> pulse all
-      reelEls.forEach(el => {
-        el.classList.add('win');
-        setTimeout(()=> el.classList.remove('win'), 2000);
+      // await all reels
+      await Promise.all(reelPromises);
+
+      // compute results
+      const landed = reels.map(re => re.sprites[CENTER_INDEX].texture.textureCacheIds?.[0] || re.sprites[CENTER_INDEX].texture.baseTexture.resource.url || '');
+      // to get names, compare file end
+      const names = landed.map(src => {
+        const fname = src.split('/').pop();
+        const sym = SYMBOL_FILES.find(s => s.split('/').pop() === fname);
+        return sym ? sym.replace(/^images\//,'').replace('.png','') : fname;
       });
-    } else {
-      // find which ones are part of any pair
-      for (let i = 0; i < names.length; i++){
-        const a = names[i];
-        if (names.filter(n=>n===a).length > 1){
-          const el = reelEls[i];
-          el.classList.add('win');
-          setTimeout(()=> el.classList.remove('win'), 2000);
+
+      // count wins
+      const allEqual = (names[0] === names[1] && names[1] === names[2]);
+      const anyPair = (names[0] === names[1] || names[1] === names[2] || names[0] === names[2]);
+      let change = 0;
+      let resultMsg = '';
+
+      if (allEqual){
+        if (names[0].includes('gem')){
+          change = 1000; resultMsg = '🎉 JACKPOT!';
+          playSafe(jackpotAudio);
+        } else {
+          change = 800; resultMsg = '🔥 Большой выигрыш!';
+          playSafe(winAudio);
+        }
+      } else if (anyPair){
+        change = 200; resultMsg = '😉 Почти — мелкий выигрыш';
+        playSafe(winAudio);
+      } else {
+        change = 0; resultMsg = '🙁 Увы — попробуй ещё';
+        playSafe(loseAudio);
+      }
+
+      // soft background flash on win
+      if (change > 0) flashBackground();
+
+      // highlight winners (pulse)
+      highlightWinners(names);
+
+      // update balance
+      balance += change;
+      balEl.textContent = balance;
+      messageEl.textContent = resultMsg;
+
+      // send result to bot
+      if (window.Telegram && Telegram.WebApp){
+        Telegram.WebApp.sendData(JSON.stringify({ action:'slot_result', result: names.join(','), change: change }));
+      }
+
+      isSpinning = false;
+      spinBtn.disabled = false;
+    }
+
+    // spinSingleReel: spins reel r for PER_REEL ms, then lands on targetFile, resolves when done
+    async function spinSingleReel(r, targetFile, done){
+      const reel = reels[r];
+      reel.spinning = true;
+      reel.speed = 1.8; // base speed multiplier (tunable)
+      const startTime = performance.now();
+      const duration = PER_REEL;
+      const endTime = startTime + duration;
+
+      // For motion blur effect: scale blur by speed
+      const spriteStep = (reel.sprites[1].y - reel.sprites[0].y);
+
+      // while spinning, repeatedly rotate the sprites vertically by moving y and wrapping
+      let lastTick = performance.now();
+      let accumulated = 0;
+      while (performance.now() < endTime){
+        const now = performance.now();
+        const dt = now - lastTick;
+        lastTick = now;
+        // Move sprites: speed px per ms scaled by speed param
+        const movePx = reel.speed * (spriteStep / 6) * (dt/16); // tuned for pleasant look
+        for (let s of reel.sprites){ s.y -= movePx; }
+        // wrap-around: if sprite y < top threshold, move to bottom with new texture
+        const threshold = -spriteStep * CENTER_INDEX - spriteStep * 0.6;
+        for (let i=0;i<reel.sprites.length;i++){
+          const s = reel.sprites[i];
+          if (s.y < threshold){
+            // move to end
+            s.y += spriteStep * reel.sprites.length;
+            // assign a new random texture
+            const tex = PIXI.Texture.from(SYMBOL_FILES[Math.floor(Math.random()*SYMBOL_FILES.length)]);
+            s.texture = tex;
+          }
+        }
+        // visual update (scale/alpha/blur)
+        updateDepthVisuals();
+
+        // spawn particles proportional to reel.speed
+        const intensity = Math.min(1, reel.speed);
+        emitParticlesFromReel(r, intensity * 0.6);
+
+        await new Promise(res => setTimeout(res, TICK_MS));
+      }
+
+      // approaching stop: we want to land the CENTER_INDEX sprite on targetFile.
+      // find nearest sprite to center and rotate so center shows target
+      // We'll perform a smooth animation to align center with target texture, with small deceleration and final bounce.
+
+      // Step1: pick some frames to animate - a smooth decelerating scroll
+      const finalIndex = reel.sprites.findIndex(s => {
+        // prefer any sprite, we'll overwrite textures during aligning
+        return true;
+      });
+
+      // compute current center offset
+      // We'll do N steps of swapping while shifting y so that the center sprite becomes targetFile
+      const steps = 8 + Math.floor(Math.random()*6); // number of minor steps to simulate slowing
+      for (let step=0; step<steps; step++){
+        // each step: shift by spriteStep roughly / steps, and change texture on the leaving sprite
+        const now = performance.now();
+        // dynamic easing on step duration (increasing)
+        const stepDuration = 70 + step*25; // grows
+        const frameCount = Math.max(1, Math.round(stepDuration / 16));
+        for (let f=0; f<frameCount; f++){
+          const frac = (f+1)/frameCount;
+          const dy = (spriteStep / steps) * frac;
+          for (let s of reel.sprites) s.y -= dy;
+          // wrap check
+          for (let i=0;i<reel.sprites.length;i++){
+            const s = reel.sprites[i];
+            if (s.y < threshold){
+              s.y += spriteStep * reel.sprites.length;
+              const tex = PIXI.Texture.from(SYMBOL_FILES[Math.floor(Math.random()*SYMBOL_FILES.length)]);
+              s.texture = tex;
+            }
+          }
+          updateDepthVisuals();
+          emitParticlesFromReel(r, 0.35);
+          await new Promise(res => setTimeout(res, 16));
         }
       }
-    }
-  }
 
-  // --- Events ---
-  spinBtn.addEventListener('click', () => {
-    doSpin().catch(e => { console.error(e); isSpinning = false; spinBtn.disabled = false; });
-  });
-
-  // keyboard toggle for sparksMode 'S' (no overlay per request)
-  window.addEventListener('keydown', (e)=>{
-    if (e.key && (e.key === 's' || e.key === 'S')){
-      sparksMode = (sparksMode === 'active') ? 'all' : 'active';
-      console.log('sparksMode now =>', sparksMode);
-    }
-  });
-
-  // keep canvas sized to reel-area on layout change
-  const ro = new ResizeObserver(() => { resizeCanvas(); });
-  ro.observe(document.getElementById('reelArea'));
-
-  // make sure everything fits Telegram WebApp viewport nicely
-  function adjustForTelegramViewport(){
-    try {
-      if (window.Telegram && Telegram.WebApp){
-        const viewport = Telegram.WebApp.viewportHeight || window.innerHeight;
-        // nothing heavy here — CSS handles most; keep hook for later if needed
+      // finally set center sprite to targetFile
+      // find the sprite closest to y=0 and set its texture to targetFile
+      let minDist = Infinity, centerSprite = null;
+      for (let s of reel.sprites){
+        if (Math.abs(s.y) < minDist){ minDist = Math.abs(s.y); centerSprite = s; }
       }
-    } catch(e){}
-  }
-  window.addEventListener('resize', adjustForTelegramViewport);
-  adjustForTelegramViewport();
+      if (centerSprite){
+        centerSprite.texture = PIXI.Texture.from(targetFile);
+        // perfect align: shift all sprites so that centerSprite.y == 0 (smooth)
+        const offset = centerSprite.y; // we need to subtract this from all
+        const alignFrames = 12;
+        for (let i=0;i<alignFrames;i++){
+          const frac = (i+1)/alignFrames;
+          for (let s of reel.sprites){ s.y -= offset * (frac/alignFrames); }
+          updateDepthVisuals();
+          emitParticlesFromReel(r, 0.6);
+          await new Promise(res => setTimeout(res, 16));
+        }
+        // micro-bounce: overshoot then settle
+        const bounceAmt = 8;
+        for (let i=0;i<6;i++){
+          const t = i/6;
+          const dy = Math.sin(t*Math.PI) * (bounceAmt * (1-t));
+          for (let s of reel.sprites) s.y -= dy;
+          updateDepthVisuals();
+          await new Promise(res => setTimeout(res, 16));
+        }
+      }
 
-  // start particle loop already started earlier
-  // (functionality kept even when not spinning so sparks fade naturally)
-})();
+      // final small burst
+      for (let i=0;i<8;i++) emitParticlesFromReel(r, 0.9*Math.random());
+
+      reel.spinning = false;
+      resolveDone();
+
+      function resolveDone(){
+        // tiny delay to keep reel showing
+        setTimeout(()=> done(), 120);
+      }
+    } // end spinSingleReel
+
+    // flash background on win
+    function flashBackground(){
+      const original = document.body.style.background;
+      document.body.style.transition = 'background 600ms ease';
+      document.body.style.background = 'linear-gradient(180deg,#0b2a4a,#06314a)';
+      setTimeout(()=>{ document.body.style.background = original; }, 1000);
+    }
+
+    // highlight winners with pulse
+    function highlightWinners(names){
+      // if triple - pulse all, else pulse those part of pair
+      if (names[0] === names[1] && names[1] === names[2]){
+        for (let el of reels) {
+          el.container.children.forEach(()=>{});
+        }
+        // simply pulse center sprite of all reels
+        for (let r=0;r<REEL_COUNT;r++){
+          const s = reels[r].sprites[CENTER_INDEX];
+          s.parent.className = ''; // noop
+          s.parent && s.parent;
+          // visual effect: scale and tint
+          gsPulse(s);
+        }
+      } else {
+        // pair highlight
+        for (let r=0;r<REEL_COUNT;r++){
+          const s = reels[r].sprites[CENTER_INDEX];
+          const fname = (s.texture.baseTexture.resource.url||'').split('/').pop();
+          if (names.filter(n=>n.includes(fname.split('.')[0])).length > 1) gsPulse(s);
+        }
+      }
+
+      function gsPulse(sprite){
+        // quick scale/tint pulse using tween-like approach
+        const startScale = sprite.scale.x;
+        let t = 0;
+        const dur = 900;
+        const start = performance.now();
+        function step(){
+          const now = performance.now();
+          t = (now-start)/dur;
+          if (t >= 1){ sprite.scale.set(startScale); return; }
+          const ease = Math.sin(t*Math.PI); // simple ease
+          sprite.scale.set(startScale * (1 + 0.18*ease));
+          requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+    }
+
+    // updateParticles on ticker
+    let lastNow = performance.now();
+    app.ticker.add((delta)=>{
+      const now = performance.now();
+      const dt = now - lastNow;
+      lastNow = now;
+      updateParticles(now, dt);
+    });
+
+    // wire spin button
+    spinBtn.addEventListener('click', ()=>{ if (!isSpinning) spinAll().catch(e=>{console.error(e); isSpinning=false; spinBtn.disabled=false;}); });
+
+    // initial visuals update
+    updateDepthVisuals();
+
+    // expose helpful console commands for testing (optional)
+    window._rc = reels;
+
+    // ensure canvas resizes properly initially
+    setTimeout(()=>{ app.renderer.resize(app.view.width, app.view.height); updateDepthVisuals(); }, 100);
+
+  })();
   </script>
 </body>
 </html>

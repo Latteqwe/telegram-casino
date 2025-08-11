@@ -39,7 +39,7 @@ html, body, #reelArea {
   user-select: none;
 }
 
-/* canvas won't block clicks now */
+/* canvas центрирован (камера в середине) */
 #reelsCanvas{display:block;background:transparent;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);will-change:transform;pointer-events:none;z-index:3}
 .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
 .action-button{padding:12px 18px;font-weight:800;border-radius:12px;border:none;cursor:pointer;background: linear-gradient(180deg,var(--btn-a),var(--btn-b));color:#031028;box-shadow: 0 8px 22px rgba(10,30,50,0.6);transition: box-shadow 180ms ease, transform 120ms ease;position:relative;}
@@ -159,9 +159,9 @@ html, body, #reelArea {
   const TOTAL_SPIN_DURATION = 7000; // ms (всего)
   const STRIP_REPEATS = 8;
   const MAX_MOTION_BLUR = 18;
-  const BLUR_RAMP_START_MS = 250; // <--- старт motion blur (250 ms)
-  const BLUR_RAMP_END_MS = 1000;  // конец blur (1000 ms)
-  const START_SLOW_FRAC = 0.12; // как просил
+  const BLUR_RAMP_START_MS = 250;
+  const BLUR_RAMP_END_MS = 1000;
+  const START_SLOW_FRAC = 0.12;
   const MAX_SCALE_BOOST = 1.28;
   const SCALE_EASE = 0.16;
 
@@ -277,7 +277,7 @@ html, body, #reelArea {
 
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''; }
 
-  // easing: requested exponent 5
+  // easing: exponent 5
   function easeOutCubic(t){
     return 1 - Math.pow(1 - t, 5);
   }
@@ -357,17 +357,20 @@ html, body, #reelArea {
 
     // DRAW RADIAL GLOW (fades to edges) — draw before reel so reel is on top
     if (r.spinning){
+      // reduced glow radius & less rounded corner for glow stroke as requested
       const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
       const baseSize = Math.max(reelW, reelH);
-      const glowRadius = baseSize * (0.45 + glowStrength * 0.4) * scale;
+      // smaller base multiplier -> less radius
+      const glowRadius = baseSize * (0.36 + glowStrength * 0.3) * scale;
+
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
 
-      // radial gradient that fades to transparent at edges
-      const inner = Math.max(4, glowRadius * 0.08);
+      // radial gradient that fades to transparent at edges (so glow decays smoothly)
+      const inner = Math.max(3, glowRadius * 0.10);
       const g = ctx.createRadialGradient(0, 0, inner, 0, 0, glowRadius);
       g.addColorStop(0.0, hexOrColorWithAlpha(glowColorCss, 0.98));
-      g.addColorStop(0.45, hexOrColorWithAlpha(glowColorCss, 0.55));
+      g.addColorStop(0.45, hexOrColorWithAlpha(glowColorCss, 0.45));
       g.addColorStop(1.0, hexOrColorWithAlpha(glowColorCss, 0.0));
 
       ctx.globalCompositeOperation = 'lighter';
@@ -377,12 +380,13 @@ html, body, #reelArea {
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
 
-      // subtle stroke to define rim (kept thin so glow looks soft)
-      ctx.shadowBlur = Math.max(8, glowRadius * 0.28);
+      // subtle rim stroke with smaller corner radius (8) so corners look less rounded
+      ctx.shadowBlur = Math.max(6, glowRadius * 0.18);
       ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.9);
-      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.06);
-      ctx.lineWidth = Math.max(8, glowRadius * 0.18);
-      roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.05);
+      ctx.lineWidth = Math.max(6, glowRadius * 0.12);
+      // <- corner radius for the glow stroke reduced from 12 to 8
+      roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 8);
       ctx.stroke();
 
       ctx.shadowBlur = 0;
@@ -663,7 +667,6 @@ html, body, #reelArea {
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-step]');
     if (!btn) return;
-    // хотим только кнопки из quick-stakes или button с id maxStakeBtn
     if (!btn.closest('.quick-stakes') && btn.id !== 'maxStakeBtn') return;
     const ds = String(btn.getAttribute('data-step') || '');
     if (!ds) return;
@@ -675,7 +678,6 @@ html, body, #reelArea {
     if (!isNaN(parsed)){
       const cur = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
       let val = cur + parsed;
-      // if user pressed -100/-50, ensure minimum 10
       stakeInput.value = Math.max(10, val);
     }
   });

@@ -1,206 +1,148 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🎰 Мини-Казино</title>
+  <title>Slots</title>
   <style>
     body {
-      margin: 0;
-      background: #121212;
-      color: #eee;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #222;
+      color: white;
       text-align: center;
-      user-select: none;
-      -webkit-user-select: none;
-      font-size: 1.5rem;
-    }
-    #balance {
-      margin-top: 1rem;
-      font-weight: 700;
-      font-size: 1.8rem;
-    }
-    #result {
-      margin: 1.5rem 0;
-      font-size: 4rem;
-      letter-spacing: 1rem;
-      user-select: none;
-    }
-    #message {
-      min-height: 2rem;
-      margin-bottom: 1rem;
-      font-weight: 600;
+      font-size: 2em;
+      font-family: Arial, sans-serif;
     }
     button {
+      font-size: 1em;
+      padding: 10px 20px;
+      margin-top: 20px;
       cursor: pointer;
-      font-size: 1.3rem;
-      padding: 0.7rem 2rem;
-      margin: 0.3rem;
-      border: none;
-      border-radius: 12px;
-      background-color: #ff6f00;
-      color: #222;
-      font-weight: 700;
-      transition: background-color 0.2s ease-in-out;
-      user-select: none;
     }
-    button:hover {
-      background-color: #ffa726;
+    #message {
+      margin-top: 15px;
+      height: 1.5em;
     }
   </style>
 </head>
 <body>
-
-  <h1>🎰 Мини-Казино</h1>
-  <div id="balance">Баланс: загрузка...</div>
+  <h1>🎰 Slots</h1>
+  <div id="balance">Баланс: 1000💰</div>
   <div id="result">🍒🍋🍊</div>
   <div id="message"></div>
-  <button id="spinBtn">СПИН</button>
-  <button id="refreshBtn">Обновить игру 🔄</button>
+  <button id="spinBtn">SPIN</button>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    (function(){
-      const symbols = ["🍒", "🍋", "🍊", "🍉", "⭐", "💎"];
-      const balanceDiv = document.getElementById('balance');
-      const resultDiv = document.getElementById('result');
-      const messageDiv = document.getElementById('message');
-      const spinBtn = document.getElementById('spinBtn');
-      const refreshBtn = document.getElementById('refreshBtn');
+    const symbolsList = ["🍒", "🍋", "🍊", "🍉", "⭐", "💎"];
+    let volume = 0.3;
+    const clickSound = new Audio("https://actions.google.com/sounds/v1/foley/coin_drop.ogg");
+    clickSound.volume = volume;
+    const winSound = new Audio("https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg");
+    winSound.volume = volume;
 
-      let balance = 0;
-      let volume = 0.3;
+    let currentBalance = 1000;
 
-      const clickSound = new Audio("https://actions.google.com/sounds/v1/foley/coin_drop.ogg");
-      clickSound.volume = volume;
-      const winSound = new Audio("https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg");
-      winSound.volume = volume;
+    function updateBalanceDisplay() {
+      document.getElementById('balance').textContent = `Баланс: ${currentBalance}💰`;
+    }
 
-      Telegram.WebApp.ready();
+    Telegram.WebApp.ready();
 
-      // Запрос баланса у бота
-      function requestBalance(){
-        Telegram.WebApp.sendData(JSON.stringify({ action: "get_balance" }));
+    // Сообщаем боту, что игра началась (запрос на инициализацию баланса)
+    Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" }));
+
+    async function spin() {
+      if (currentBalance < 100) {
+        document.getElementById('message').textContent = "❌ Недостаточно баланса для ставки!";
+        return;
+      }
+      document.getElementById('message').textContent = "";
+      let results = generateResult();
+
+      for (let col = 0; col < 3; col++) {
+        await spinReel(col, results[col]);
       }
 
-      // Обновляем баланс в интерфейсе
-      function updateBalanceDisplay(value){
-        balance = value;
-        balanceDiv.textContent = `Баланс: ${balance}💰`;
+      let msg = "";
+      let change = -100; // ставка
+
+      if (results[0] === results[1] && results[1] === results[2]) {
+        msg = "🎉 Джекпот!";
+        change = 1000;
+        winSound.play().catch(() => {});
+      } else if (
+        results[0] === results[1] ||
+        results[1] === results[2] ||
+        results[0] === results[2]
+      ) {
+        msg = "😉 Почти!";
+        change = 200;
+      } else {
+        msg = "🙁 Не повезло!";
       }
 
-      // Генерация результата спина
-      function generateResult(){
-        const chance = Math.random() * 100;
-        let res = [];
-        if(chance <= 1){
-          const sym = symbols[Math.floor(Math.random() * symbols.length)];
-          res = [sym, sym, sym];
-        } else if(chance <= 21){
-          const sym1 = symbols[Math.floor(Math.random() * symbols.length)];
-          let sym2;
-          do {
-            sym2 = symbols[Math.floor(Math.random() * symbols.length)];
-          } while(sym2 === sym1);
-          res = Math.random() < 0.5 ? [sym1, sym1, sym2] : [sym1, sym2, sym1];
-        } else {
-          while(res.length < 3){
-            const sym = symbols[Math.floor(Math.random() * symbols.length)];
-            if(!res.includes(sym)) res.push(sym);
-          }
-        }
-        return res;
-      }
+      currentBalance += change;
+      if (currentBalance < 0) currentBalance = 0;
+      updateBalanceDisplay();
+      document.getElementById('message').textContent = msg;
 
-      // Анимация прокрутки символов
-      async function spinReel(col, finalSymbol){
-        let speed = 50;
-        const slowdownFactor = 1.08;
-        while(speed < 300){
-          let current = resultDiv.textContent.split('');
-          current[col] = symbols[Math.floor(Math.random() * symbols.length)];
-          resultDiv.textContent = current.join('');
-          clickSound.currentTime = 0;
-          clickSound.play().catch(() => {});
-          await delay(speed);
-          speed *= slowdownFactor;
-        }
-        let final = resultDiv.textContent.split('');
-        final[col] = finalSymbol;
-        resultDiv.textContent = final.join('');
-      }
-
-      // Задержка для анимации
-      function delay(ms){
-        return new Promise(resolve => setTimeout(resolve, ms));
-      }
-
-      // Обработка спина
-      async function spin(){
-        if(balance < 100){
-          messageDiv.textContent = "❌ Не хватает баланса для спина (100💰)";
-          return;
-        }
-        spinBtn.disabled = true;
-        messageDiv.textContent = "";
-        let results = generateResult();
-
-        for(let col = 0; col < 3; col++){
-          await spinReel(col, results[col]);
-        }
-
-        let msg = "";
-        let change = -100; // ставка
-        if(results[0] === results[1] && results[1] === results[2]){
-          msg = "🎉 Джекпот!";
-          change = 1000;
-          winSound.play().catch(() => {});
-        } else if(results[0] === results[1] || results[1] === results[2] || results[0] === results[2]){
-          msg = "😉 Почти!";
-          change = 200;
-        } else {
-          msg = "🙁 Не повезло!";
-        }
-
-        messageDiv.textContent = msg;
-
-        // Отправляем результат в бота
-        Telegram.WebApp.sendData(JSON.stringify({
+      Telegram.WebApp.sendData(
+        JSON.stringify({
           action: "slot_result",
           result: results.join(''),
-          change: change
-        }));
+          change: change,
+        })
+      );
+    }
 
-        spinBtn.disabled = false;
+    async function spinReel(col, finalSymbol) {
+      let slotDiv = document.getElementById('result');
+      let speed = 50;
+      let slowdownFactor = 1.08;
+      let symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+      while (speed < 300) {
+        let current = slotDiv.textContent.split('');
+        current[col] = symbol;
+        slotDiv.textContent = current.join('');
+        clickSound.currentTime = 0;
+        clickSound.play().catch(() => {});
+        symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+        await delay(speed);
+        speed *= slowdownFactor;
       }
+      let final = slotDiv.textContent.split('');
+      final[col] = finalSymbol;
+      slotDiv.textContent = final.join('');
+    }
 
-      // Обработка данных от бота (через сообщения)
-      // Пока нет нормального event listener в Telegram WebApp для incoming data,
-      // будем ловить ответы через сообщение и вручную обновлять баланс.
-      // Т.к. нет прямого API для этого, баланс обновится, когда придёт сообщение с "Баланс: N"
-      // Пользователь должен видеть баланс в чате.
-
-      // Кнопка обновления кеша
-      function refreshGame(){
-        const url = new URL(window.location.href);
-        url.searchParams.set('v', Date.now());
-        window.location.href = url.toString();
+    function generateResult() {
+      let chance = Math.random() * 100;
+      let res = [];
+      if (chance <= 1) {
+        let sym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+        res = [sym, sym, sym];
+      } else if (chance <= 21) {
+        let sym1 = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+        let sym2;
+        do {
+          sym2 = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+        } while (sym2 === sym1);
+        res = Math.random() < 0.5 ? [sym1, sym1, sym2] : [sym1, sym2, sym1];
+      } else {
+        while (res.length < 3) {
+          let sym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+          if (!res.includes(sym)) res.push(sym);
+        }
       }
+      return res;
+    }
 
-      // Инициализация
-      spinBtn.addEventListener('click', spin);
-      refreshBtn.addEventListener('click', refreshGame);
+    function delay(ms) {
+      return new Promise((r) => setTimeout(r, ms));
+    }
 
-      requestBalance();
+    document.getElementById('spinBtn').addEventListener('click', spin);
 
-      // Здесь можно добавить обработку сообщений от бота, если реализовать через WebSocket или polling,
-      // но пока Telegram не поддерживает обратную связь в WebApp кроме через чат.
-
-    })();
+    updateBalanceDisplay();
   </script>
-
 </body>
 </html>

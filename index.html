@@ -372,9 +372,9 @@ html, body, #reelArea {
       ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, Math.min(0.95, 0.75 + 0.25 * scaleFactor));
       // тонкий stroke, но с большим shadowBlur даст заметное свечение вокруг
       ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.08);
-      ctx.lineWidth = Math.max(10, glowRadius * 1);
+      ctx.lineWidth = Math.max(10, glowRadius * 0.85);
       // используем фиксированный cornerRadius, как просил — большой, "почти квадратный"
-      const cornerRadius = 4;
+      const cornerRadius = 2;
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, cornerRadius);
       ctx.stroke();
 
@@ -733,6 +733,7 @@ html, body, #reelArea {
 </script>
 </body>
 </html>
+
 
 
 

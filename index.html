@@ -367,14 +367,14 @@ html, body, #reelArea {
       const glowRadius = glowBase * (0.6 + 0.8 * scaleFactor);
 
       // shadow strength / blur
-      ctx.shadowBlur = Math.max(12, glowRadius * 2.0);
+      ctx.shadowBlur = Math.max(12, glowRadius * 4.0);
       // более насыщенная тень по цвету
       ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, Math.min(0.95, 0.75 + 0.25 * scaleFactor));
       // тонкий stroke, но с большим shadowBlur даст заметное свечение вокруг
       ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.08);
-      ctx.lineWidth = Math.max(10, glowRadius * 0.85);
+      ctx.lineWidth = Math.max(10, glowRadius * 1);
       // используем фиксированный cornerRadius, как просил — большой, "почти квадратный"
-      const cornerRadius = 6;
+      const cornerRadius = 4;
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, cornerRadius);
       ctx.stroke();
 
@@ -733,5 +733,6 @@ html, body, #reelArea {
 </script>
 </body>
 </html>
+
 
 

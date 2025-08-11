@@ -84,7 +84,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
             <button class="inline-btn" data-step="-50">-50</button>
             <button class="inline-btn" data-step="+50">+50</button>
             <button class="inline-btn" data-step="+100">+100</button>
-            <button class="inline-btn" id="maxStakeBtn">МАКС</button>
+            <button class="inline-btn" id="maxStakeBtn" data-step="max">МАКС</button>
           </div>
         </div>
 
@@ -139,21 +139,20 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 (function(){
-  // ----- конфиг -----
+  // ---------- CONFIG ----------
   const REEL_COUNT = 3;
   const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
 
-  // основной параметр — общее время спина (ms)
-  const TOTAL_SPIN_DURATION = 7000; // ms
+  const TOTAL_SPIN_DURATION = 7000; // ms total (последовательно)
   const STRIP_REPEATS = 8;
   const MAX_MOTION_BLUR = 18;
-  const BLUR_RAMP_START_MS = 200;   // начало — 200ms (без blur)
-  const BLUR_RAMP_END_MS = 1000;    // конец — 1000ms (плавное выключение)
-  const START_SLOW_FRAC = 0.10;     // как просил
-  const MAX_SCALE_BOOST = 1.28;     // чуть побольше, чтобы масштаб барабана был заметнее
+  const BLUR_RAMP_START_MS = 200;
+  const BLUR_RAMP_END_MS = 1000;
+  const START_SLOW_FRAC = 0.12; // <- changed as requested
+  const MAX_SCALE_BOOST = 1.28;
   const SCALE_EASE = 0.16;
 
-  // ----- DOM & audio -----
+  // ---------- DOM & AUDIO ----------
   const reelArea = document.getElementById('reelArea');
   const canvas = document.getElementById('reelsCanvas');
   const ctx = canvas.getContext('2d', { alpha: true });
@@ -170,7 +169,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   const themeRed = document.getElementById('themeRed');
   const autoSpinBtn = document.getElementById('autoSpinBtn');
   const stakeInput = document.getElementById('stakeInput');
-  const maxStakeBtn = document.getElementById('maxStakeBtn');
 
   const clickSound = document.getElementById('clickSound');
   const winSound = document.getElementById('winSound');
@@ -180,7 +178,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   try { clickSound.volume=0.28; winSound.volume=0.95; loseSound.volume=0.4; jackpotSound.volume=0.9; } catch(e){}
 
-  // ----- layout -----
+  // ---------- LAYOUT ----------
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let W=0,H=0,reelW=0,reelH=0,reelX=[];
   const PAD = 56;
@@ -216,7 +214,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   }
   window.addEventListener('resize', resize);
 
-  // ----- preload symbols -----
+  // ---------- PRELOAD SYMBOLS ----------
   const SYMBOLS = [];
   for (let i=0;i<SYMBOL_FILES.length;i++){
     const img = new Image();
@@ -224,7 +222,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     SYMBOLS.push({ img, name: SYMBOL_FILES[i].split('/').pop().split('.')[0] });
   }
 
-  // ----- Reel model -----
+  // ---------- REEL MODEL ----------
   class Reel {
     constructor(i){
       this.i = i;
@@ -264,173 +262,14 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''; }
 
-  // easing: easeOut power 4 (1 - (1 - t)^4)
-  function easeOutPow4(t){
-    return 1 - Math.pow(1 - t, 4);
+  // ---------- EASING ----------
+  // requested: exponent 5
+  function easeOutCubic(t){
+    return 1 - Math.pow(1 - t, 5);
   }
-  // smoothstep for ramps
   function smoothstep(t){ t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
 
-  // ----- draw loop -----
-  function draw(){
-    ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
-
-    const symbolH = Math.round(reelH * 0.86);
-    const offsetX = PAD;
-    const offsetY = PAD;
-    const centerY = offsetY + H/2;
-    const glowColorCss = cssVar('--glow-color') || 'rgba(140,170,223,0.46)';
-
-    for (let ri=0; ri<REEL_COUNT; ri++){
-      const r = reels[ri];
-      const baseX = offsetX + reelX[ri];
-      const baseY = centerY;
-
-      // update spin offset
-      if (r.spinning){
-        const now = performance.now();
-        let tRaw = (now - r.startTime) / Math.max(1, r.duration);
-        tRaw = Math.max(0, Math.min(1, tRaw));
-        const delay = START_SLOW_FRAC;
-        let tAdj = tRaw < delay ? 0 : (tRaw - delay) / (1 - delay);
-        const eased = easeOutPow4(tAdj);
-        r.offset = r.startOffset + (r.targetOffset - r.startOffset) * eased;
-        if (tRaw >= 1 && !r.onCompleteCalled){
-          r.spinning = false; r.onCompleteCalled = true;
-          const totalH = symbolH * r.strip.length;
-          r.offset = ((r.offset % totalH) + totalH) % totalH;
-          if (typeof r.onComplete === 'function'){ r.onComplete(); r.onComplete = null; }
-        }
-      }
-
-      // smooth scale value
-      const targetScale = r.spinning ? MAX_SCALE_BOOST : 1.0;
-      r.visualScale += (targetScale - r.visualScale) * SCALE_EASE;
-      const scale = r.visualScale;
-
-      // motion blur envelope per reel:
-      let motionBlur = 0;
-      if (r.spinning){
-        const now = performance.now();
-        const elapsed = Math.max(0, now - r.startTime);
-        const dur = Math.max(1, r.duration);
-
-        if (dur <= BLUR_RAMP_START_MS + BLUR_RAMP_END_MS){
-          const norm = Math.min(1, Math.max(0, elapsed / dur));
-          motionBlur = MAX_MOTION_BLUR * Math.sin(Math.PI * norm);
-        } else {
-          if (elapsed < BLUR_RAMP_START_MS) {
-            motionBlur = 0;
-          } else if (elapsed > dur - BLUR_RAMP_END_MS) {
-            const rem = Math.max(0, dur - elapsed);
-            const t = Math.max(0, Math.min(1, rem / BLUR_RAMP_END_MS));
-            motionBlur = MAX_MOTION_BLUR * smoothstep(t);
-          } else {
-            motionBlur = MAX_MOTION_BLUR;
-          }
-        }
-      }
-
-      // --- DRAW EVEN GLOW AROUND REEL (обтекание) ---
-      if (r.spinning){
-        // make glow tighter but saturated (as requested)
-        const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
-        const baseSize = Math.max(reelW, reelH);
-        const glowRadius = baseSize * (0.45 + glowStrength * 0.28) * scale;
-        // stroke shadow approach: draw rounded rect stroke with shadow for even glow
-        ctx.save();
-        ctx.translate(baseX + reelW/2, baseY); // center
-        // shadow uses device pixels; set proportional
-        ctx.shadowBlur = Math.max(8, glowRadius * 0.55);
-        ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.62);
-        ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.02); // almost transparent stroke - shadow produces visible glow
-        ctx.lineWidth = Math.max(10, glowRadius * 0.28);
-        // draw rounded rect stroke centered at 0
-        roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // ---- Draw scaled reel & contents (scale entire reel so reel rect + symbols scale together) ----
-      ctx.save();
-      ctx.translate(baseX + reelW/2, baseY); // move to reel center
-      ctx.scale(scale, scale);
-      const localX = -reelW/2;
-      const localY = -reelH/2;
-
-      // clip reel rect in local coordinates
-      roundRectPath(ctx, localX, localY, reelW, reelH, 12);
-      ctx.clip();
-
-      // interior background
-      const bgGrad = ctx.createLinearGradient(0, localY, 0, localY + reelH);
-      bgGrad.addColorStop(0, cssVar('--bg-a') || '#031024');
-      bgGrad.addColorStop(1, cssVar('--bg-b') || '#061c36');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(localX, localY, reelW, reelH);
-
-      // draw symbols in local coords; center is at 0
-      const startSi = Math.floor(-r.offset / symbolH) - 4;
-      const drawCount = 14;
-      for (let si = startSi; si < startSi + drawCount; si++){
-        const idx = ((si % r.strip.length) + r.strip.length) % r.strip.length;
-        const symIndex = r.strip[idx];
-        const sym = SYMBOLS[symIndex];
-        if (!sym || !sym.img) continue;
-        const yCenter = (si * symbolH) + r.offset; // local center (0 is reel center)
-        const topClip = localY - symbolH;
-        const bottomClip = localY + reelH + symbolH;
-        if (yCenter < topClip || yCenter > bottomClip) continue;
-
-        const dist = Math.abs(yCenter - 0); // distance from reel center
-        const maxDist = reelH * 0.95;
-        const progress = Math.max(0, 1 - dist / maxDist);
-        const baseScale = 0.70 + 0.30 * progress;
-        const symScale = baseScale; // overall scale already applied by ctx.scale
-        const brightness = 0.96 + 0.04 * progress;
-        const alpha = 0.56 + 0.44 * progress;
-
-        const drawW = reelW * 0.78 * symScale;
-        const drawH = symbolH * 0.86 * symScale;
-        const drawX = localX + (reelW - drawW)/2;
-        const drawY = yCenter - drawH/2;
-
-        if (motionBlur > 0.6){
-          const samples = Math.min(6, Math.max(3, Math.round(motionBlur / 3)));
-          for (let s = 0; s < samples; s++){
-            const t = samples === 1 ? 0.5 : s / (samples - 1);
-            const offsetY = (t - 0.5) * motionBlur * 1.2;
-            const alphaMul = (1 - Math.abs(t - 0.5) * 1.8) * alpha;
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, Math.min(1, alphaMul * 0.92));
-            ctx.filter = `brightness(${brightness.toFixed(3)})`;
-            try { ctx.drawImage(sym.img, drawX, drawY + offsetY, drawW, drawH); } catch(e){}
-            ctx.restore();
-          }
-        } else {
-          ctx.save();
-          ctx.globalAlpha = Math.min(1, Math.max(0.12, alpha));
-          ctx.filter = `brightness(${brightness.toFixed(3)})`;
-          try { ctx.drawImage(sym.img, drawX, drawY, drawW, drawH); } catch(e){}
-          ctx.restore();
-        }
-      }
-
-      // end clip & scaled reel drawing
-      ctx.restore();
-
-      // thin frame (draw after scaling so frame doesn't scale)
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-      ctx.lineWidth = 1;
-      roundRectStroke(ctx, baseX, baseY - reelH/2, reelW, reelH, 12);
-      ctx.restore();
-    }
-
-    requestAnimationFrame(draw);
-  }
-
-  // helpers
+  // ---------- DRAW HELPERS ----------
   function hexOrColorWithAlpha(c, a){
     if (/rgba?\(/.test(c)) {
       const inside = c.replace(/^rgba?\(|\)|\s/g,'').split(',');
@@ -451,16 +290,175 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function roundRectStroke(ctx,x,y,w,h,r){ roundRectPath(ctx,x,y,w,h,r); ctx.stroke(); }
 
-  // ----- probabilities -----
+  // ---------- DRAW SINGLE REEL ----------
+  function drawSingleReel(obj){ // obj: {r, i}
+    const r = obj.r, ri = obj.i;
+    const symbolH = Math.round(reelH * 0.86);
+    const offsetX = PAD;
+    const centerY = PAD + H/2;
+    const baseX = offsetX + reelX[ri];
+    const baseY = centerY;
+    const glowColorCss = cssVar('--glow-color') || 'rgba(140,170,223,0.46)';
+
+    // update spin offset (if spinning)
+    if (r.spinning){
+      const now = performance.now();
+      let tRaw = (now - r.startTime) / Math.max(1, r.duration);
+      tRaw = Math.max(0, Math.min(1, tRaw));
+      const delay = START_SLOW_FRAC;
+      let tAdj = tRaw < delay ? 0 : (tRaw - delay) / (1 - delay);
+      const eased = easeOutCubic(tAdj);
+      r.offset = r.startOffset + (r.targetOffset - r.startOffset) * eased;
+      if (tRaw >= 1 && !r.onCompleteCalled){
+        r.spinning = false; r.onCompleteCalled = true;
+        const totalH = symbolH * r.strip.length;
+        r.offset = ((r.offset % totalH) + totalH) % totalH;
+        if (typeof r.onComplete === 'function'){ r.onComplete(); r.onComplete = null; }
+      }
+    }
+
+    // smooth scale
+    const targetScale = r.spinning ? MAX_SCALE_BOOST : 1.0;
+    r.visualScale += (targetScale - r.visualScale) * SCALE_EASE;
+    const scale = r.visualScale;
+
+    // motion blur envelope
+    let motionBlur = 0;
+    if (r.spinning){
+      const now = performance.now();
+      const elapsed = Math.max(0, now - r.startTime);
+      const dur = Math.max(1, r.duration);
+      if (dur <= BLUR_RAMP_START_MS + BLUR_RAMP_END_MS){
+        const norm = Math.min(1, Math.max(0, elapsed / dur));
+        motionBlur = MAX_MOTION_BLUR * Math.sin(Math.PI * norm);
+      } else {
+        if (elapsed < BLUR_RAMP_START_MS) { motionBlur = 0; }
+        else if (elapsed > dur - BLUR_RAMP_END_MS) {
+          const rem = Math.max(0, dur - elapsed);
+          const t = Math.max(0, Math.min(1, rem / BLUR_RAMP_END_MS));
+          motionBlur = MAX_MOTION_BLUR * smoothstep(t);
+        } else { motionBlur = MAX_MOTION_BLUR; }
+      }
+    }
+
+    // DRAW GLOW (shadow stroke) — draw before reel so reel sits above
+    if (r.spinning){
+      const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
+      const baseSize = Math.max(reelW, reelH);
+      const glowRadius = baseSize * (0.45 + glowStrength * 0.28) * scale;
+      ctx.save();
+      // center and draw rounded rect stroke with shadow to produce even glow
+      ctx.translate(baseX + reelW/2, baseY);
+      ctx.shadowBlur = Math.max(6, glowRadius * 0.5);
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.72);
+      // stroke very faint but heavy shadow makes the glow
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.02);
+      ctx.lineWidth = Math.max(8, glowRadius * 0.22);
+      roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
+      ctx.stroke();
+      // reset shadow so it doesn't leak
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'transparent';
+      ctx.restore();
+    }
+
+    // DRAW SCALED REEL + SYMBOLS + FRAME (frame drawn inside scale so it grows with reel)
+    ctx.save();
+    ctx.translate(baseX + reelW/2, baseY);
+    ctx.scale(scale, scale);
+    const localX = -reelW/2;
+    const localY = -reelH/2;
+
+    // clip to reel rect
+    roundRectPath(ctx, localX, localY, reelW, reelH, 12);
+    ctx.clip();
+
+    // interior bg
+    const bgGrad = ctx.createLinearGradient(0, localY, 0, localY + reelH);
+    bgGrad.addColorStop(0, cssVar('--bg-a') || '#031024');
+    bgGrad.addColorStop(1, cssVar('--bg-b') || '#061c36');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(localX, localY, reelW, reelH);
+
+    // draw symbols
+    const startSi = Math.floor(-r.offset / symbolH) - 4;
+    const drawCount = 14;
+    for (let si = startSi; si < startSi + drawCount; si++){
+      const idx = ((si % r.strip.length) + r.strip.length) % r.strip.length;
+      const symIndex = r.strip[idx];
+      const sym = SYMBOLS[symIndex];
+      if (!sym || !sym.img) continue;
+      const yCenter = (si * symbolH) + r.offset;
+      const topClip = localY - symbolH;
+      const bottomClip = localY + reelH + symbolH;
+      if (yCenter < topClip || yCenter > bottomClip) continue;
+
+      const dist = Math.abs(yCenter - 0);
+      const maxDist = reelH * 0.95;
+      const progress = Math.max(0, 1 - dist / maxDist);
+      const baseScale = 0.70 + 0.30 * progress;
+      const symScale = baseScale;
+      const brightness = 0.96 + 0.04 * progress;
+      const alpha = 0.56 + 0.44 * progress;
+
+      const drawW = reelW * 0.78 * symScale;
+      const drawH = symbolH * 0.86 * symScale;
+      const drawX = localX + (reelW - drawW)/2;
+      const drawY = yCenter - drawH/2;
+
+      if (motionBlur > 0.6){
+        const samples = Math.min(6, Math.max(3, Math.round(motionBlur / 3)));
+        for (let s = 0; s < samples; s++){
+          const t = samples === 1 ? 0.5 : s / (samples - 1);
+          const offsetY = (t - 0.5) * motionBlur * 1.2;
+          const alphaMul = (1 - Math.abs(t - 0.5) * 1.8) * alpha;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, alphaMul * 0.92));
+          ctx.filter = `brightness(${brightness.toFixed(3)})`;
+          try { ctx.drawImage(sym.img, drawX, drawY + offsetY, drawW, drawH); } catch(e){}
+          ctx.restore();
+        }
+      } else {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, Math.max(0.12, alpha));
+        ctx.filter = `brightness(${brightness.toFixed(3)})`;
+        try { ctx.drawImage(sym.img, drawX, drawY, drawW, drawH); } catch(e){}
+        ctx.restore();
+      }
+    }
+
+    // draw frame INSIDE scaled context so it scales with reel
+    ctx.save();
+    ctx.lineWidth = 2.2; // will scale visually because of ctx.scale
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    roundRectStroke(ctx, localX, localY, reelW, reelH, 12);
+    ctx.restore();
+
+    ctx.restore(); // end scaled reel
+  }
+
+  // ---------- MAIN DRAW LOOP ----------
+  function draw(){
+    ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
+
+    // draw non-spinning first (left->right), spinning last so spinning is on top
+    const enumerated = reels.map((r,i)=>({r,i}));
+    const nonSpinning = enumerated.filter(o => !o.r.spinning);
+    const spinning = enumerated.filter(o => o.r.spinning);
+
+    for (const obj of nonSpinning) drawSingleReel(obj);
+    for (const obj of spinning) drawSingleReel(obj);
+
+    requestAnimationFrame(draw);
+  }
+
+  // ---------- PROBABILITIES ----------
   function generateResult(){
     const chance = Math.random()*100;
-    if (chance < 1.5){
-      const s = Math.floor(Math.random()*SYMBOLS.length);
-      return [s,s,s];
-    } else if (chance < 36.5){
+    if (chance < 1.5){ const s = Math.floor(Math.random()*SYMBOLS.length); return [s,s,s]; }
+    else if (chance < 36.5){
       const s1 = Math.floor(Math.random()*SYMBOLS.length);
-      let s2;
-      do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1);
+      let s2; do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1);
       if (Math.random() < 0.5) return [s1,s1,s2]; else return [s1,s2,s1];
     } else {
       const arr = [];
@@ -472,9 +470,9 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     }
   }
 
-  // ----- spin orchestration -----
+  // ---------- SPIN ORCHESTRATION ----------
   let spinningFlag = false, autoSpin=false, autoSpinTimer=null;
-  const SETTINGS_KEY = 'rc_settings_radial_v6_glow';
+  const SETTINGS_KEY = 'rc_settings_vfinal';
   let settings = { theme:'dark', musicEnabled:false, musicVolume:0.28, soundsEnabled:true, vibrationEnabled:true, autoSpin:false };
 
   async function doSpin(){
@@ -554,7 +552,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     }
   }
 
-  // ----- settings/UI (unchanged) -----
+  // ---------- UI / SETTINGS ----------
   function loadSettings(){
     try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) settings = Object.assign(settings, JSON.parse(raw)); } catch(e){}
     applySettingsToUI(); applySettingsEffect();
@@ -622,7 +620,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     if (modalPanel) modalPanel.style.background = `linear-gradient(180deg, ${cssVar('--modal-a')}, ${cssVar('--modal-b')})`;
   }
 
-  // ----- UI wiring (quick-stakes fix) -----
+  // ---------- UI WIRING ----------
   openSettings.addEventListener('click', ()=> { settingsModal.style.display = 'flex'; });
   closeSettings.addEventListener('click', ()=> { settingsModal.style.display = 'none'; applySettingsEffect(); });
   musicToggle.addEventListener('change', (e)=> { settings.musicEnabled = e.target.checked; applySettingsEffect(); });
@@ -634,20 +632,20 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   themeDark.addEventListener('click', ()=> { settings.theme='dark'; applySettingsToUI(); applySettingsEffect(); });
   themeRed.addEventListener('click', ()=> { settings.theme='red'; applySettingsToUI(); applySettingsEffect(); });
 
-  document.querySelectorAll('.quick-stakes button').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
+  // quick-stakes: reliable handling for +/- and max
+  document.querySelectorAll('.quick-stakes .inline-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
       const ds = btn.getAttribute('data-step');
-      if (btn.id === 'maxStakeBtn' || ds === 'МАКС') { stakeInput.value = Math.max(10, currentBalance); return; }
+      if (!ds) return;
+      if (ds === 'max') { stakeInput.value = Math.max(10, currentBalance); return; }
       let val = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
-      const delta = parseInt(ds, 10);
-      if (!isNaN(delta)){
-        val = val + delta;
-      }
+      const parsed = parseInt(ds, 10);
+      if (!isNaN(parsed)) val = val + parsed;
       stakeInput.value = Math.max(10, val);
     });
   });
 
-  maxStakeBtn.addEventListener('click', ()=> { stakeInput.value = Math.max(10, currentBalance); });
+  document.getElementById('maxStakeBtn').addEventListener('click', ()=> { stakeInput.value = Math.max(10, currentBalance); });
   stakeInput.addEventListener('blur', ()=> { stakeInput.value = Math.max(10, Math.floor(Number(stakeInput.value) || 100)); });
 
   autoSpinBtn.addEventListener('click', ()=> {
@@ -666,8 +664,8 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   function updateBreathing(){ if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing'); else spinBtn.classList.remove('breathing'); }
 
-  // ----- balance -----
-  const BAL_KEY = 'rc_balance_radial_v6_glow';
+  // ---------- BALANCE ----------
+  const BAL_KEY = 'rc_balance_vfinal';
   let currentBalance = parseInt(localStorage.getItem(BAL_KEY)) || 1000;
   document.getElementById('balValue').textContent = currentBalance;
   function saveBalance(){ localStorage.setItem(BAL_KEY, String(currentBalance)); }
@@ -682,7 +680,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900);
   }
 
-  // ----- init -----
+  // ---------- INIT ----------
   resize();
   loadSettings();
   requestAnimationFrame(draw);

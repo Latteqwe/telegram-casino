@@ -18,6 +18,17 @@
 }
 html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text)}
 body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 12px;box-sizing:border-box}
+
+/* запрет свайпов/зумов через CSS (дублируется JS-обработчиками) */
+html, body, #reelArea {
+  touch-action: none;
+  -ms-touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px}
 #logo{width:48px}
 h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:12px}
@@ -344,17 +355,20 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
     // DRAW STRONGER GLOW (shadow stroke) — draw before reel so reel is on top
     if (r.spinning){
-      // corrected glowStrength formula & stronger but compact glow
+      // corrected glowStrength formula & MUCH stronger but still controlled glow
       const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
       const baseSize = Math.max(reelW, reelH);
-      const glowRadius = baseSize * (0.45 + glowStrength * 0.3) * scale;
+      const glowRadius = baseSize * (0.45 + glowStrength * 0.4) * scale;
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
-      // **усиленное, но аккуратное свечение**
-      ctx.shadowBlur = Math.max(10, glowRadius * 0.9);               // усиленный blur, но не чрезмерный
-      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.92);     // альфа <= 1
-      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.04);
-      ctx.lineWidth = Math.max(8, glowRadius * 0.22);                // толще stroke для заметности
+
+      // ------------- **Усиленное свечение** -------------
+      // Увеличил множитель shadowBlur и lineWidth, и сделал альфу максимально заметной (1.0),
+      // но не ставлю >1 — чтобы не было артефактов.
+      ctx.shadowBlur = Math.max(18, glowRadius * 1.6);                // сильный, но компактный blur
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 1.0);      // насыщенная альфа
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.08);
+      ctx.lineWidth = Math.max(12, glowRadius * 0.36);               // толще stroke — glow виден четко
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
       ctx.stroke();
       // reset
@@ -687,6 +701,15 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     document.body.style.background = `linear-gradient(180deg, ${a}, ${b})`;
     setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900);
   }
+
+  // ----- disable native scrolling / swipes (JS) -----
+  // Prevent touchmove scrolling (passive:false so preventDefault works)
+  function preventTouchMove(e){
+    if (e.cancelable) e.preventDefault();
+  }
+  document.addEventListener('touchmove', preventTouchMove, { passive: false });
+  // Also prevent wheel scroll on desktop
+  window.addEventListener('wheel', (e)=>{ if (e.cancelable) e.preventDefault(); }, { passive: false });
 
   // ----- init -----
   resize();

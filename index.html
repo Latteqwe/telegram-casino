@@ -1,159 +1,624 @@
+ихич, [11.08.2025 9:23]
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Слоты</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #111;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Rofl Casino — Mini App</title>
+<link rel="icon" href="images/slot.png" />
+<style>
+  /* --- БАЗОВЫЙ СТИЛЬ --- */
+  :root{
+    --bg-a: #031024;
+    --bg-b: #061c36;
+    --accent: rgba(140,170,223,0.85); /* серо-голубой для свечения */
+    --accent-soft: rgba(140,170,223,0.18);
+    --text: #cfe8ff;
+    --panel: rgba(3,16,28,0.52);
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    background: linear-gradient(180deg, var(--bg-a), var(--bg-b));
+    font-family: "Montserrat", Arial, sans-serif;
+    color:var(--text);
+    padding:18px 12px;
+    box-sizing:border-box;
+    transition: background 800ms ease;
+  }
+
+  /* header */
+  header {
+    width:100%;
+    max-width:960px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:18px;
+  }
+  #logo {
+    width:48px;
+    height:auto;
+  }
+  h1{
+    font-size:20px;
+    margin:0;
+    letter-spacing:1px;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  }
+
+  /* main area */
+  .stage {
+    width:100%;
+    max-width:960px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+  }
+
+  .panel {
+    width:100%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:14px;
+    padding:18px;
+    box-sizing:border-box;
+    box-shadow: 0 8px 30px rgba(1,19,38,0.5), inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+
+  /* balance & message row */
+  .top-row{
+    display:flex;
+    width:100%;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  #balance {
+    padding:10px 16px;
+    border-radius:10px;
+    background: var(--panel);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+    font-weight:700;
+  }
+  #message {
+    flex:1;
+    margin-left:12px;
+    text-align:center;
+    font-weight:600;
+    color:var(--text);
+    min-height:22px;
+  }
+
+  /* reels area */
+  .reel-area {
+    position:relative;
+    display:flex;
+    gap:16px;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+  }
+
+  /* canvas for sparks sits behind reels but inside same panel */
+  #sparksCanvas {
+    position:absolute;
+    left:0; top:0; right:0; bottom:0;
+    pointer-events:none;
+    z-index:2;
+  }
+
+  .reel {
+    --size: clamp(72px, calc(16vw), 180px);
+    width:var(--size);
+    height:var(--size);
+    border-radius:16px;
+    background: linear-gradient(145deg, rgba(2,10,20,0.65), rgba(6,20,36,0.6));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 6px 12px rgba(255,255,255,0.02);
+    transition: transform 260ms linear, box-shadow 260ms linear;
+    z-index:3;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .reel img {
+    max-width:78%;
+    max-height:78%;
+    user-select:none;
+    pointer-events:none;
+    transition: transform 200ms linear;
+    display:block;
+  }
+
+  /* active reel style (выделение серо-голубое) */
+  .reel.active {
+    transform: scale(1.12);
+    box-shadow: 0 10px 30px rgba(24,80,120,0.55), 0 0 22px 6px var(--accent);
+    background: linear-gradient(145deg, rgba(10,22,36,0.9), rgba(6,18,30,0.95));
+  }
+
+  /* highlight (вигрыш) - моргание */
+  .reel.win {
+    animation: winPulse 900ms ease-in-out 0s 2;
+  }
+  @keyframes winPulse {
+    0% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); }
+    45% { box-shadow: 0 18px 60px rgba(120,190,255,0.95); transform: scale(1.18); }
+    100% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); transform: scale(1.12); }
+  }
+
+ихич, [11.08.2025 9:23]
+/* spin button */
+  .controls {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:center;
+    margin-top:8px;
+  }
+  #spinBtn {
+    padding:12px 26px;
+    font-weight:800;
+    border-radius:12px;
+    cursor:pointer;
+    border:none;
+    background: linear-gradient(180deg, #91b7e7, #2b5f91);
+    color:#031028;
+    box-shadow: 0 8px 22px rgba(10,30,50,0.6), inset 0 -4px 14px rgba(0,0,0,0.18);
+    transition: box-shadow 200ms ease, transform 120ms ease, background 200ms ease;
+  }
+  #spinBtn:hover {
+    box-shadow: 0 12px 30px rgba(10,30,50,0.7), 0 0 12px var(--accent-soft);
+    transform: translateY(-2px);
+  }
+  #spinBtn:active { transform: translateY(0); }
+
+  /* small helper */
+  .muted {
+    opacity:0.85;
+    font-size:14px;
+    color: #bfd9ff;
+  }
+
+  /* responsive tweaks */
+  @media (max-width:520px){
+    .reel { --size: clamp(64px, 24vw, 120px); border-radius:12px; }
+    #logo { width:38px; }
+    h1 { font-size:16px; }
+  }
+</style>
 </head>
 <body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.1.5/pixi.min.js"></script>
-<script>
-(async () => {
-    const app = new PIXI.Application();
-    await app.init({ 
-        background: '#111', 
-        resizeTo: window 
+  <header>
+    <img id="logo" src="images/slot.png" alt="Rofl" />
+    <h1>Rofl Casino</h1>
+  </header>
+
+  <main class="stage">
+    <section class="panel" style="max-width:960px; width:100%;">
+      <div class="top-row">
+        <div id="balance">Баланс: <span id="balValue">1000</span> 💰</div>
+        <div id="message" class="muted">Готово — нажми SPIN</div>
+      </div>
+
+      <div class="reel-area" id="reelArea" style="margin-top:14px;">
+        <canvas id="sparksCanvas"></canvas>
+        <div class="reel" data-index="0"><img src="images/banana.png" alt="sym0" /></div>
+        <div class="reel" data-index="1"><img src="images/star.png" alt="sym1" /></div>
+        <div class="reel" data-index="2"><img src="images/gem.png" alt="sym2" /></div>
+      </div>
+
+      <div class="controls" style="margin-top:14px;">
+        <button id="spinBtn">КРУТИ!</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Звуки: берем из папки sounds/ (как попросил) -->
+  <audio id="clickSound" src="sounds/click.mp3" preload="auto"></audio>
+  <audio id="winSound" src="sounds/win.mp3" preload="auto"></audio>
+  <audio id="loseSound" src="sounds/lose.mp3" preload="auto"></audio>
+  <audio id="jackpotSound" src="sounds/jackpot.mp3" preload="auto"></audio>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+/* ============================
+   Rofl Casino — index.html
+   - готово для Telegram Mini App
+   - звуки в папке sounds/
+   - картинки в папке images/
+   ============================ */
+
+(function(){
+  // --- Настройки ---
+  const TOTAL_DURATION = 9000; // общая длительность последовательного кручения (ms)
+  const REEL_COUNT = 3;
+  const DURATION_PER_REEL = TOTAL_DURATION / REEL_COUNT; // 3000,3000,3000
+  const CHANGE_INTERVAL = 100; // ms между сменами символов (линейно)
+  const STAKE = 100; // ставка за спин (локально отображается и отправляется боту в change)
+
+  // Sparks mode toggle (S key): "active" or "all"
+  let sparksMode = "active"; // default
+  console.log("sparksMode:", sparksMode);
+
+  // --- DOM ---
+  const reelEls = Array.from(document.querySelectorAll('.reel'));
+  const reelImgs = reelEls.map(r => r.querySelector('img'));
+  const spinBtn = document.getElementById('spinBtn');
+  const messageEl = document.getElementById('message');
+  const balValueEl = document.getElementById('balValue');
+
+  // --- Symbols (images in images/) ---
+  const SYMBOLS = [
+    {name:'banana', file:'images/banana.png'},
+    {name:'star',   file:'images/star.png'},
+    {name:'gem',    file:'images/gem.png'},
+    {name:'cherry', file:'images/cherry.png'},
+    {name:'bell',   file:'images/bell.png'},
+    {name:'lemon',  file:'images/lemon.png'}
+  ];
+
+  // --- Sounds (from sounds/ as requested) ---
+  const clickSound = document.getElementById('clickSound');
+  const winSound = document.getElementById('winSound');
+  const loseSound = document.getElementById('loseSound');
+  const jackpotSound = document.getElementById('jackpotSound');
+
+ихич, [11.08.2025 9:23]
+// volume tweaks (можешь подправить)
+  try { clickSound.volume = 0.28; winSound.volume = 0.55; loseSound.volume = 0.4; jackpotSound.volume = 0.75; } catch(e){}
+
+  // --- Telegram WebApp init ---
+  if (window.Telegram && Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    // сообщаем боту, что веб-приложение открылось (может вернуть баланс через сообщения бота)
+    Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" }));
+  }
+
+  // --- Particles (Canvas) ---
+  const canvas = document.getElementById('sparksCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let canvasW = 0, canvasH = 0, rafId = null;
+
+  function resizeCanvas(){
+    const rect = document.getElementById('reelArea').getBoundingClientRect();
+    canvasW = Math.ceil(rect.width);
+    canvasH = Math.ceil(rect.height);
+    canvas.width = canvasW * devicePixelRatio;
+    canvas.height = canvasH * devicePixelRatio;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+  });
+  resizeCanvas();
+
+  function emitSparksFromReel(reelIndex, intensity = 1) {
+    // compute spawn point: center of reel relative to canvas
+    const reel = reelEls[reelIndex];
+    if (!reel) return;
+    const containerRect = document.getElementById('reelArea').getBoundingClientRect();
+    const rRect = reel.getBoundingClientRect();
+    const x = (rRect.left + rRect.right)/2 - containerRect.left;
+    const y = (rRect.top + rRect.bottom)/2 - containerRect.top;
+
+    // emit a few particles based on intensity
+    const count = Math.max(1, Math.round(2 + intensity * 6));
+    for(let i=0;i<count;i++){
+      createParticle(x + (Math.random()-0.5)*20, y + (Math.random()-0.5)*20, intensity);
+    }
+  }
+
+  function createParticle(x, y, intensity) {
+    const angle = (Math.random()*Math.PI*2);
+    const speed = 0.5 + Math.random()*2.2 + intensity*1.8;
+    const vx = Math.cos(angle) * speed * (0.6 + Math.random()*0.8);
+    const vy = Math.sin(angle) * speed * (0.6 + Math.random()*0.8) - 1.2 * intensity;
+    const life = 600 + Math.random()*900;
+    const size = 2 + Math.random()*6 * (0.8 + intensity*0.6);
+    particles.push({
+      x, y, vx, vy, alpha: 0.95, life, born: performance.now(), size,
+      color: rgba(170,200,255,${0.9 + Math.random()*0.1})
     });
-    document.body.appendChild(app.canvas);
+  }
 
-    const symbols = [
-        'images/banana.png',
-        'images/star.png',
-        'images/gem.png',
-        'images/cherry.png',
-        'images/bell.png',
-        'images/lemon.png'
-    ];
-
-    const assets = {};
-    for (let path of symbols) {
-        assets[path] = await PIXI.Assets.load(path);
+ихич, [11.08.2025 9:23]
+function updateParticles(now){
+    // update and draw
+    ctx.clearRect(0,0,canvasW,canvasH);
+    // use additive blending for glow
+    ctx.globalCompositeOperation = 'lighter';
+    for(let i = particles.length-1; i>=0; i--){
+      const p = particles[i];
+      const t = now - p.born;
+      if (t > p.life  p.alpha <= 0.01) { particles.splice(i,1); continue; }
+      // physics
+      p.vx *= 0.995;
+      p.vy += 0.015; // gravity slight
+      p.x += p.vx;
+      p.y += p.vy;
+      // fade
+      p.alpha = Math.max(0, 1 - t / p.life);
+      // draw
+      ctx.beginPath();
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size*2);
+      g.addColorStop(0, p.color.replace(/[\d\.]+\)$/,'1)'));
+      g.addColorStop(0.4, p.color.replace(/[\d\.]+\)$/,'0.65)'));
+      g.addColorStop(1, p.color.replace(/[\d\.]+\)$/,'0)'));
+      ctx.fillStyle = g;
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
     }
-    const slotIcon = await PIXI.Assets.load('images/slot.png');
+    ctx.globalCompositeOperation = 'source-over';
+  }
 
-    const reelWidth = 160;
-    const symbolSize = 150;
-    const reels = [];
-    const reelContainer = new PIXI.Container();
-    app.stage.addChild(reelContainer);
+  function startParticleLoop(){
+    let last = performance.now();
+    function loop(now){
+      updateParticles(now);
+      rafId = requestAnimationFrame(loop);
+    }
+    if (!rafId) rafId = requestAnimationFrame(loop);
+  }
+  function stopParticleLoop(){
+    if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  }
+  startParticleLoop();
 
-    const reelCount = 3;
-    for (let i = 0; i < reelCount; i++) {
-        const rc = new PIXI.Container();
-        rc.x = i * reelWidth;
-        reelContainer.addChild(rc);
+  // --- Utilities ---
+  function randSym(){ return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]; }
+  function setMessage(text, timeout=2200){
+    messageEl.textContent = text;
+    if (timeout>0){ setTimeout(()=>{ messageEl.textContent = 'Готово — нажми SPIN'; }, timeout); }
+  }
+  function playSafe(audio){
+    try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){}
+  }
 
-        const reel = {
-            container: rc,
-            symbols: [],
-            position: 0,
-            previousPosition: 0,
-            blur: new PIXI.BlurFilter()
-        };
-        rc.filters = [reel.blur];
+  // --- Spin logic (sequential reels, linear timing) ---
+  let isSpinning = false;
+  let currentBalance = 1000;
+  balValueEl.textContent = currentBalance;
 
-        for (let j = 0; j < 4; j++) {
-            const texture = assets[symbols[Math.floor(Math.random() * symbols.length)]];
-            const symbol = new PIXI.Sprite(texture);
-            symbol.y = j * symbolSize;
-            symbol.x = Math.round((reelWidth - symbol.width) / 2);
-            reel.symbols.push(symbol);
-            rc.addChild(symbol);
+  function generateResult(){
+    // probabilities similar to prior design: 1% jackpot, 20% pair, else all distinct
+    const res = [];
+    let chance = Math.random()*100;
+    if (chance <= 1){
+      const sym = randSym();
+      res.push(sym,sym,sym);
+    } else if (chance <= 21){
+      const s1 = randSym();
+      let s2;
+      do { s2 = randSym(); } while (s2.name === s1.name);
+      // randomize positions
+      if (Math.random() < 0.5) res.push(s1,s1,s2); else res.push(s1,s2,s1);
+    } else {
+      // three distinct
+      while(res.length < 3){
+        const s = randSym();
+        if (!res.find(r=>r.name===s.name)) res.push(s);
+      }
+    }
+    return res;
+  }
+
+  async function doSpin(){
+    if (isSpinning) return;
+    isSpinning = true;
+    spinBtn.disabled = true;
+    setMessage('');
+    currentBalance -= STAKE;
+    balValueEl.textContent = currentBalance;
+
+    // prepare final result
+    const finalResult = generateResult();
+
+    // send start_game event (bot might respond with balance separately)
+    if (window.Telegram && Telegram.WebApp){
+      Telegram.WebApp.sendData(JSON.stringify({ action: 'start_game' }));
+    }
+
+    // For each reel sequentially:
+    for (let r = 0; r < REEL_COUNT; r++){
+      const reelEl = reelEls[r];
+      const imgEl = reelImgs[r];
+      // set active highlight on this reel only
+      reelEls.forEach((el, idx) => el.classList.toggle('active', idx === r));
+
+      const startT = performance.now();
+      const duration = DURATION_PER_REEL; // linear
+      let elapsed = 0;
+
+      // number of ticks determined by CHANGE_INTERVAL (linear)
+      // We'll change symbol every CHANGE_INTERVAL ms, play click and emit particles.
+      while (elapsed < duration){
+        // change symbol
+        const sym = randSym();
+        imgEl.src = sym.file;
+        imgEl.alt = sym.name;
+        playSafe(clickSound);
+
+        // particles intensity scaled by remaining relative speed: bigger when just started
+        const remaining = Math.max(0, duration - elapsed);
+        const intensity = Math.max(0.15, remaining / duration); // 1 -> 0
+        // spawn particles depending on sparksMode
+        if (sparksMode === 'all'){
+          for (let i=0;i<REEL_COUNT;i++) emitS
+
+ихич, [11.08.2025 9:23]
+parksFromReel(i, intensity);
+        } else {
+          emitSparksFromReel(r, intensity);
         }
-        reels.push(reel);
-    }
-    reelContainer.x = (app.screen.width - reelWidth * reelCount) / 2;
-    reelContainer.y = (app.screen.height - symbolSize * 3) / 2;
 
-    function startPlay() {
-        let running = 0;
-        for (let i = 0; i < reels.length; i++) {
-            const r = reels[i];
-            const extra = Math.floor(Math.random() * 3);
-            const target = r.position + 10 + i * 5 + extra;
-            const time = 2500 + i * 600;
+        // wait linear interval
+        await new Promise(res => setTimeout(res, CHANGE_INTERVAL));
+        elapsed = performance.now() - startT;
+      }
 
-            tweenTo(r, 'position', target, time, backout(0.5), null, i === reels.length - 1 ? reelsComplete : null);
-        }
-    }
+      // final symbol for this reel - set it and play final click
+      imgEl.src = finalResult[r].file;
+      imgEl.alt = finalResult[r].name;
+      playSafe(clickSound);
 
-    function reelsComplete() {
-        console.log('Spin complete');
-    }
+      // small final particle burst
+      for (let i=0;i<6;i++) emitSparksFromReel(r, 0.9 + Math.random()*0.6);
 
-    function backout(amount) {
-        return t => (--t * t * ((amount + 1) * t + amount) + 1);
+      // keep reel highlighted slightly after stop (but then removed before next active)
+      await new Promise(res => setTimeout(res, 120)); // tiny pause
+      // remove the active on this reel before next loop (next will set its own active)
+      reelEl.classList.remove('active');
     }
 
-    const tweening = [];
-    function tweenTo(object, property, target, time, easing, onchange, oncomplete) {
-        const tween = { object, property, propertyBeginValue: object[property], target, easing, time, change: onchange, complete: oncomplete, start: Date.now() };
-        tweening.push(tween);
-        return tween;
-    }
-
-    app.ticker.add(() => {
-        const now = Date.now();
-        const remove = [];
-        for (let i = 0; i < tweening.length; i++) {
-            const t = tweening[i];
-            const phase = Math.min(1, (now - t.start) / t.time);
-            t.object[t.property] = lerp(t.propertyBeginValue, t.target, t.easing(phase));
-            if (t.change) t.change(t);
-            if (phase === 1) {
-                t.object[t.property] = t.target;
-                if (t.complete) t.complete(t);
-                remove.push(t);
-            }
-        }
-        for (let rem of remove) {
-            tweening.splice(tweening.indexOf(rem), 1);
-        }
-
-        for (let i = 0; i < reels.length; i++) {
-            const r = reels[i];
-            r.blur.blurY = (r.position - r.previousPosition) * 8;
-            r.previousPosition = r.position;
-
-            for (let j = 0; j < r.symbols.length; j++) {
-                const s = r.symbols[j];
-                const prevY = s.y;
-                s.y = ((r.position + j) % r.symbols.length) * symbolSize - symbolSize;
-
-                let middle = app.screen.height / 2;
-                let dist = Math.abs(s.y + reelContainer.y - middle);
-                let scale = 1 - dist / 600;
-                s.scale.set(Math.max(0.5, scale));
-
-                s.alpha = Math.max(0.5, scale);
-                s.tint = scale < 0.8 ? 0x888888 : 0xFFFFFF;
-
-                if (s.y < -symbolSize) {
-                    const texture = assets[symbols[Math.floor(Math.random() * symbols.length)]];
-                    s.texture = texture;
-                    s.y += symbolSize * r.symbols.length;
-                }
-            }
-        }
+    // all reels stopped — compute result
+    const names = reelImgs.map(i => {
+      const src = i.src  '';
+      const fname = src.split('/').pop().split('?')[0];
+      // find symbol by file name
+      return SYMBOLS.find(s => s.file.endsWith(fname))?.name  fname;
     });
 
-    function lerp(a1, a2, t) {
-        return a1 * (1 - t) + a2 * t;
+    // check win types
+    let change = 0;
+    let message = '';
+    const allEqual = names.every(v => v === names[0]);
+    const anyPair = (names[0] === names[1])  (names[1] === names[2])  (names[0] === names[2]);
+
+    if (allEqual){
+      // jackpot if gem, else big win
+      if (names[0] === 'gem'){
+        change = 1000;
+        message = '🎉 JACKPOT!';
+        playSafe(jackpotSound);
+      } else {
+        change = 800;
+        message = '🔥 Большой выигрыш!';
+        playSafe(winSound);
+      }
+    } else if (anyPair){
+      change = 200;
+      message = '😉 Почти — мелкий выигрыш';
+      playSafe(winSound);
+    } else {
+      change = 0;
+      message = '🙁 Увы — попробуй ещё';
+      playSafe(loseSound);
     }
 
-    window.addEventListener('pointerdown', startPlay);
+    // subtle background shift on any non-zero win
+    if (change > 0){
+      flashBackground();
+      // highlight winning reels (if pair or triple)
+      highlightWinningReels(names);
+    }
+
+    // update balance locally and display
+    currentBalance += change;
+    balValueEl.textContent = currentBalance;
+    setMessage(message, 2400);
+
+    // send result to Telegram bot (so bot can persist to server)
+    if (window.Telegram && Telegram.WebApp){
+      Telegram.WebApp.sendData(JSON.stringify({
+        action: 'slot_result',
+        result: names.join(','),
+        change: (change - STAKE) // net change? earlier protocol used change - make clear negative stake maybe
+      }));
+    }
+
+    // stop any extra particles gradually
+    // allow particles to fade naturally; keep loop running
+    isSpinning = false;
+    spinBtn.disabled = false;
+  } // end doSpin
+
+  // flash background lightly on win (subtle bluish tone) - revert after short time
+  function flashBackground(){
+    const orig = document.body.style.background;
+    // gentle bluish gradient (very subtle)
+    document.body.style.transition = 'background 600ms ease';
+    document.body.style.background = 'linear-gradient(180deg, rgba(20,40,70,0.9), rgba(6,22,38,0.98))';
+    // slight overlay via box-shadow on panel could be added — we do simple background change
+    setTimeout(() => {
+      document.body.style.background = '';
+    }, 1200);
+  }
+
+  // highlight winning reels with gentle pulse (morganie), can be removed quickly if needed
+  function highlightWinningReels(names){
+    // determine winners
+    if (names.every(n => n === names[0])) {
+      // all same -> pulse all
+      reelEls.forEach(el => {
+        el.classList.add('win');
+        setTimeout(()=> el.classList.remove('win'), 2000);
+      });
+    } else {
+      // find which ones are part of any pair
+      for (let i = 0; i < names.length; i++){
+        const a = names[i];
+        if (names.filter(n=>n===a).length > 1){
+          const el = reelEls[i];
+          el.classList.add('win');
+          setTimeout(()=> el.classList.remove('win'), 2000);
+        }
+      }
+    }
+  }
+
+ихич, [11.08.2025 9:23]
+// --- Events ---
+  spinBtn.addEventListener('click', () => {
+    doSpin().catch(e => { console.error(e); isSpinning = false; spinBtn.disabled = false; });
+  });
+
+  // keyboard toggle for sparksMode 'S' (no overlay per request)
+  window.addEventListener('keydown', (e)=>{
+    if (e.key && (e.key === 's'  e.key === 'S')){
+      sparksMode = (sparksMode === 'active') ? 'all' : 'active';
+      console.log('sparksMode now =>', sparksMode);
+    }
+  });
+
+  // keep canvas sized to reel-area on layout change
+  const ro = new ResizeObserver(() => { resizeCanvas(); });
+  ro.observe(document.getElementById('reelArea'));
+
+  // make sure everything fits Telegram WebApp viewport nicely
+  function adjustForTelegramViewport(){
+    try {
+      if (window.Telegram && Telegram.WebApp){
+        const viewport = Telegram.WebApp.viewportHeight || window.innerHeight;
+        // nothing heavy here — CSS handles most; keep hook for later if needed
+      }
+    } catch(e){}
+  }
+  window.addEventListener('resize', adjustForTelegramViewport);
+  adjustForTelegramViewport();
+
+  // start particle loop already started earlier
+  // (functionality kept even when not spinning so sparks fade naturally)
 })();
-</script>
+  </script>
 </body>
 </html>

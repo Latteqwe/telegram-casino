@@ -60,8 +60,8 @@
     }
     .slot.highlight {
       box-shadow:
-        0 0 20px 6px #021a48cc,
-        inset 0 0 15px 3px #021a48bb;
+        0 0 18px 6px #8caadfcc,
+        inset 0 0 12px 3px #8caadfbb;
       transform: scale(1.15);
     }
     #message {
@@ -125,9 +125,6 @@
       document.getElementById('slot2')
     ];
 
-    const spinSound = new Audio("sounds/spin.mp3");
-    spinSound.volume = 0.4;
-
     const jackpotSound = new Audio("sounds/jackpot.mp3");
     jackpotSound.volume = 0.6;
 
@@ -175,19 +172,20 @@
       const baseDelay = 20;
       const maxDelay = 300;
 
+      slotElem.classList.add('highlight');
+
       for (let i = 0; i < spinCycles; i++) {
         let randomSym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
         slotElem.textContent = randomSym;
-        slotElem.classList.add('highlight');
 
-        // НЕ играем клик на каждом шаге (убираем здесь)
+        clickSound.currentTime = 0;
+        clickSound.play().catch(() => {});
 
         let t = i / (spinCycles - 1);
         let delayTime = baseDelay + maxDelay * t * t;
         await delay(delayTime);
       }
 
-      // Играй click звук ТОЛЬКО на финальном символе
       slotElem.textContent = finalSymbol;
       clickSound.currentTime = 0;
       clickSound.play().catch(() => {});
@@ -203,16 +201,11 @@
       currentBalance -= 100;
       updateBalanceDisplay();
 
-      spinSound.currentTime = 0;
-      spinSound.play().catch(() => {});
-
       const finalResult = generateResult();
 
       for (let i = 0; i < 3; i++) {
         await animateSlot(slots[i], finalResult[i]);
       }
-
-      spinSound.pause();
 
       let change = 0;
       let msg = "";

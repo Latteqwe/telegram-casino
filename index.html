@@ -355,14 +355,17 @@ html, body, #reelArea {
       }
     }
 
-    // NEW: SMOOTHER & SMALLER "ALMOST-SQUARE" GLOW
+    // NEW: SMOOTHER & SMALLER "ALMOST-SQUARE" GLOW that scales with reel scale
     if (r.spinning){
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
 
+      // compute scale factor (0..1) based on current visual scale
+      const scaleFactor = Math.max(0, Math.min(1, (scale - 1) / (MAX_SCALE_BOOST - 1)));
+
       // параметры свечения: меньше радиус, более плавный переход, сильнее скругление
       const baseSize = Math.max(reelW, reelH);
-      const glowBase = baseSize * 0.18 * scale; // << уменьшили радиус (сильно)
+      const glowBase = baseSize * 0.18 * scale; // base radius
       const glowSteps = 20;                     // больше шагов -> плавнее
       const cornerRadius = 12;                  // сильнее скруглить края
       const color = glowColorCss;
@@ -370,12 +373,16 @@ html, body, #reelArea {
       // плавная формула alpha: комбинация степени и smoothstep для мягкой градации
       for (let s = glowSteps; s >= 1; s--){
         const t = s / glowSteps; // 1..0
-        // более мягкая (плавная) кривая прозрачности
-        const alpha = 0.82 * Math.pow(t, 1.6) * smoothstep(t);
+        // более мягкая (плавная) кривая прозрачности, затем умножаем на scaleFactor
+        let alpha = 0.82 * Math.pow(t, 1.6) * smoothstep(t);
+        alpha *= Math.pow(scaleFactor, 0.9); // главный трюк: домножаем на scaleFactor
 
-        // гораздо меньшие expand, чтобы glow был компактный
-        const expandX = (reelW * 0.18) * (1 + (1 - t) * 0.35) * (1 + (scale - 1) * 0.3);
-        const expandY = (reelH * 0.20) * (1 + (1 - t) * 0.35) * (1 + (scale - 1) * 0.3);
+        // гораздо меньшие expand, и тоже зависят от scaleFactor
+        let expandX = (reelW * 0.18) * (1 + (1 - t) * 0.35) * (1 + (scale - 1) * 0.3);
+        let expandY = (reelH * 0.20) * (1 + (1 - t) * 0.35) * (1 + (scale - 1) * 0.3);
+        expandX *= (0.25 + 0.75 * scaleFactor); // start very small when scaleFactor ~ 0
+        expandY *= (0.25 + 0.75 * scaleFactor);
+
         const w = reelW + expandX * (1.0 + (glowSteps - s) * 0.04);
         const h = reelH + expandY * (1.0 + (glowSteps - s) * 0.04);
 
@@ -384,11 +391,14 @@ html, body, #reelArea {
         ctx.fillStyle = hexOrColorWithAlpha(color, 1.0);
 
         // tiny shadow blur to soften edges but corners stay rounded nicely
+        let shadowBlur = Math.max(0, (glowBase * 0.03) * (1 + (glowSteps - s) * 0.12));
+        shadowBlur *= (0.15 + 0.85 * scaleFactor); // scale with scaleFactor so blur grows with reel
         ctx.shadowColor = hexOrColorWithAlpha(color, Math.min(0.9, alpha * 0.85));
-        ctx.shadowBlur = Math.max(0, (glowBase * 0.03) * (1 + (glowSteps - s) * 0.12));
+        ctx.shadowBlur = shadowBlur;
+
         // draw rounded rect centered
         const rx = -w/2, ry = -h/2;
-        const rrad = Math.max(2, cornerRadius * t); // inner steps чуть поменьше радиус
+        const rrad = Math.max(2, cornerRadius * t * (0.35 + 0.65 * scaleFactor)); // corners increase slightly with scale
         roundRectPath(ctx, rx, ry, w, h, rrad);
         ctx.fill();
         ctx.restore();
@@ -398,10 +408,10 @@ html, body, #reelArea {
       ctx.save();
       ctx.lineJoin = 'miter';
       ctx.miterLimit = 2;
-      ctx.globalAlpha = 0.07;
-      ctx.lineWidth = Math.max(2, (reelW * 0.035) * scale);
-      ctx.strokeStyle = hexOrColorWithAlpha(color, 0.9);
-      roundRectPath(ctx, -reelW/2 - 2.5, -reelH/2 - 2.5, reelW + 5, reelH + 5, Math.max(2, cornerRadius * 0.7));
+      ctx.globalAlpha = 0.07 * (0.25 + 0.75 * scaleFactor);
+      ctx.lineWidth = Math.max(2, (reelW * 0.035) * (0.35 + 0.65 * scaleFactor));
+      ctx.strokeStyle = hexOrColorWithAlpha(color, 0.9 * Math.min(1, scaleFactor + 0.15));
+      roundRectPath(ctx, -reelW/2 - 2.5, -reelH/2 - 2.5, reelW + 5, reelH + 5, Math.max(2, cornerRadius * 0.7 * (0.35 + 0.65 * scaleFactor)));
       ctx.stroke();
       ctx.restore();
 

@@ -366,8 +366,8 @@ html, body, #reelArea {
       // параметры свечения (финальная стадия выше): НЕ зависимы от маленьких лагов размеров
       const baseSize = Math.max(reelW, reelH);
       const glowBase = baseSize * 0.25; // <-- тут сделал по твоему запросу (больше финал)
-      const glowSteps = 28;             // больше шагов -> ещё плавнее
-      const cornerRadius = 35;          // фиксированная константа, не зависит от размера
+      const glowSteps = 24;             // больше шагов -> ещё плавнее
+      const cornerRadius = 27;          // фиксированная константа, не зависит от размера
       const color = glowColorCss;
 
       // плавная формула alpha: степень + smoothstep, не завязана на размеры
@@ -767,3 +767,4 @@ html, body, #reelArea {
 </script>
 </body>
 </html>
+

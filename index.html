@@ -2,13 +2,13 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>🎰 Dark Slots - Вечерний кайф</title>
+  <title>Rofl Casino 🎰</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');
     body {
       margin: 0;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: #f0f0f0;
+      background: linear-gradient(135deg, #01081e, #031028, #06213c);
+      color: #c0d6ff;
       font-family: 'Montserrat', sans-serif;
       display: flex;
       flex-direction: column;
@@ -20,7 +20,7 @@
     }
     h1 {
       margin-bottom: 1rem;
-      text-shadow: 0 0 8px #ffb700;
+      text-shadow: 0 0 8px #021a48;
       font-size: 2.8rem;
       letter-spacing: 2px;
     }
@@ -28,21 +28,21 @@
       font-size: 1.8rem;
       margin-bottom: 20px;
       padding: 10px 30px;
-      background: rgba(255, 183, 0, 0.15);
+      background: rgba(3, 16, 40, 0.6);
       border-radius: 12px;
-      box-shadow: 0 0 12px #ffb700aa;
+      box-shadow: 0 0 10px #021a48cc;
       min-width: 240px;
       text-align: center;
     }
     #slots {
       display: flex;
       gap: 20px;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(4, 18, 45, 0.5);
       padding: 20px 40px;
       border-radius: 24px;
       box-shadow:
-        inset 0 0 10px #ffb700cc,
-        0 8px 30px #ffb700aa;
+        inset 0 0 10px #021a48cc,
+        0 8px 30px #021a4877;
     }
     .slot {
       width: 80px;
@@ -50,18 +50,18 @@
       font-size: 3.5rem;
       line-height: 80px;
       text-align: center;
-      background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+      background: linear-gradient(145deg, #0a142b, #021a48);
       border-radius: 20px;
       box-shadow:
-        0 4px 8px #0008,
-        inset 0 4px 6px #444;
+        0 4px 8px #000a,
+        inset 0 4px 6px #021a48;
       user-select: none;
       transition: transform 0.3s ease;
     }
     .slot.highlight {
       box-shadow:
-        0 0 20px 6px #ffb700cc,
-        inset 0 0 15px 3px #ffb700bb;
+        0 0 20px 6px #021a48cc,
+        inset 0 0 15px 3px #021a48bb;
       transform: scale(1.15);
     }
     #message {
@@ -69,39 +69,39 @@
       min-height: 2rem;
       font-size: 1.3rem;
       font-weight: 600;
-      text-shadow: 0 0 6px #ffb700aa;
+      text-shadow: 0 0 6px #021a48cc;
     }
     #spinBtn {
       margin-top: 30px;
       padding: 15px 45px;
       font-size: 1.4rem;
       font-weight: 700;
-      color: #222;
-      background: #ffb700;
+      color: #c0d6ff;
+      background: #021a48;
       border: none;
       border-radius: 30px;
       cursor: pointer;
       box-shadow:
-        0 8px 15px #ffa500cc,
-        inset 0 3px 8px #ffd54fcc;
+        0 8px 15px #021a48cc,
+        inset 0 3px 8px #06326dcc;
       transition: background 0.3s ease, transform 0.2s ease;
       user-select: none;
     }
     #spinBtn:hover {
-      background: #ffc947;
+      background: #06326d;
       transform: scale(1.05);
       box-shadow:
-        0 12px 25px #ffbb0099,
-        inset 0 4px 10px #ffe06a99;
+        0 12px 25px #064a9dcc,
+        inset 0 4px 10px #0b62c0cc;
     }
     #spinBtn:active {
       transform: scale(0.95);
-      box-shadow: 0 5px 10px #ffaa0088 inset;
+      box-shadow: 0 5px 10px #021a4877 inset;
     }
   </style>
 </head>
 <body>
-  <h1>🎰 Dark Slots - Вечерний кайф</h1>
+  <h1>Rofl Casino 🎰</h1>
   <div id="balance">Баланс: 1000 💰</div>
   <div id="slots">
     <div class="slot" id="slot0">🍒</div>
@@ -180,15 +180,17 @@
         slotElem.textContent = randomSym;
         slotElem.classList.add('highlight');
 
-        clickSound.currentTime = 0;
-        clickSound.play().catch(() => {});
+        // НЕ играем клик на каждом шаге (убираем здесь)
 
         let t = i / (spinCycles - 1);
         let delayTime = baseDelay + maxDelay * t * t;
         await delay(delayTime);
       }
 
+      // Играй click звук ТОЛЬКО на финальном символе
       slotElem.textContent = finalSymbol;
+      clickSound.currentTime = 0;
+      clickSound.play().catch(() => {});
       slotElem.classList.remove('highlight');
     }
 
@@ -201,11 +203,16 @@
       currentBalance -= 100;
       updateBalanceDisplay();
 
+      spinSound.currentTime = 0;
+      spinSound.play().catch(() => {});
+
       const finalResult = generateResult();
 
       for (let i = 0; i < 3; i++) {
         await animateSlot(slots[i], finalResult[i]);
       }
+
+      spinSound.pause();
 
       let change = 0;
       let msg = "";

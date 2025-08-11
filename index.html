@@ -1,136 +1,568 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slot Game</title>
-    <style>
-        body {
-            margin: 0;
-            background: #222;
-            color: #fff;
-            font-family: sans-serif;
-            text-align: center;
-            overflow: hidden;
-        }
-        #balance {
-            font-size: 24px;
-            margin-top: 10px;
-        }
-        .slot-machine {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-        .reel {
-            width: 100px;
-            height: 100px;
-            background: #000;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        .reel img {
-            width: 80px;
-            height: 80px;
-            image-rendering: pixelated;
-        }
-        #spin-btn {
-            margin-top: 20px;
-            font-size: 20px;
-            padding: 10px 20px;
-            background: gold;
-            color: black;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        #spin-btn:disabled {
-            background: gray;
-            cursor: not-allowed;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Rofl Casino — Mini App</title>
+<link rel="icon" href="images/slot.png" />
+<style>
+  /* --- БАЗОВЫЙ СТИЛЬ (из твоего оригинала, слегка подогнал) --- */
+  :root{
+    --bg-a: #031024;
+    --bg-b: #061c36;
+    --accent: rgba(140,170,223,0.85);
+    --accent-soft: rgba(140,170,223,0.18);
+    --text: #cfe8ff;
+    --panel: rgba(3,16,28,0.52);
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    background: linear-gradient(180deg, var(--bg-a), var(--bg-b));
+    font-family: "Montserrat", Arial, sans-serif;
+    color:var(--text);
+    padding:18px 12px;
+    box-sizing:border-box;
+    transition: background 800ms ease;
+  }
+
+  header {
+    width:100%;
+    max-width:960px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:18px;
+  }
+  #logo { width:48px; height:auto; }
+  h1{
+    font-size:20px; margin:0; letter-spacing:1px;
+    color:var(--text); display:flex; align-items:center; gap:12px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  }
+
+  .stage { width:100%; max-width:960px; display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .panel {
+    width:100%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:14px; padding:18px; box-sizing:border-box;
+    box-shadow: 0 8px 30px rgba(1,19,38,0.5), inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+
+  .top-row{ display:flex; width:100%; align-items:center; justify-content:space-between; gap:12px; }
+  #balance { padding:10px 16px; border-radius:10px; background: var(--panel); box-shadow: 0 3px 12px rgba(0,0,0,0.5); font-weight:700; }
+  #message { flex:1; margin-left:12px; text-align:center; font-weight:600; color:var(--text); min-height:22px; }
+
+  .reel-area { position:relative; display:flex; gap:16px; align-items:center; justify-content:center; padding:18px; }
+  #sparksCanvas { position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:none; z-index:2; }
+
+  .reel {
+    --size: clamp(72px, calc(16vw), 180px);
+    width:var(--size); height:var(--size);
+    border-radius:16px;
+    background: linear-gradient(145deg, rgba(2,10,20,0.65), rgba(6,20,36,0.6));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 6px 12px rgba(255,255,255,0.02);
+    transition: transform 260ms linear, box-shadow 260ms linear;
+    z-index:3; position:relative; overflow:visible; /* overflow visible so particles not clipped by reel itself */
+  }
+
+  /* inner container to host floating imgs */
+  .reel-inner { width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; overflow:visible; }
+
+  /* image layers will be absolutely centered and animated */
+  .reel-inner img {
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform: translate(-50%,-50%) scale(1);
+    max-width:78%;
+    max-height:78%;
+    user-select:none;
+    pointer-events:none;
+    will-change: transform, filter, opacity;
+    filter: none;
+  }
+
+  .reel.active {
+    transform: scale(1.12);
+    box-shadow: 0 10px 30px rgba(24,80,120,0.55), 0 0 22px 6px var(--accent);
+    background: linear-gradient(145deg, rgba(10,22,36,0.9), rgba(6,18,30,0.95));
+  }
+
+  .reel.win { animation: winPulse 900ms ease-in-out 0s 2; }
+  @keyframes winPulse {
+    0% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); }
+    45% { box-shadow: 0 18px 60px rgba(120,190,255,0.95); transform: scale(1.18); }
+    100% { box-shadow: 0 10px 30px rgba(24,80,120,0.45); transform: scale(1.12); }
+  }
+
+  .controls { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:8px; }
+  #spinBtn {
+    padding:12px 26px; font-weight:800; border-radius:12px; cursor:pointer; border:none;
+    background: linear-gradient(180deg, #91b7e7, #2b5f91); color:#031028;
+    box-shadow: 0 8px 22px rgba(10,30,50,0.6), inset 0 -4px 14px rgba(0,0,0,0.18);
+    transition: box-shadow 200ms ease, transform 120ms ease, background 200ms ease;
+  }
+  #spinBtn:hover { box-shadow: 0 12px 30px rgba(10,30,50,0.7), 0 0 12px var(--accent-soft); transform: translateY(-2px); }
+  #spinBtn:active { transform: translateY(0); }
+  #spinBtn:disabled { opacity:0.6; transform:none; cursor:not-allowed; }
+
+  .muted { opacity:0.85; font-size:14px; color: #bfd9ff; }
+
+  @media (max-width:520px){
+    .reel { --size: clamp(64px, 24vw, 120px); border-radius:12px; }
+    #logo { width:38px; }
+    h1 { font-size:16px; }
+  }
+</style>
 </head>
 <body>
-    <h1>🎰 Слоты</h1>
-    <div id="balance">Баланс: 1000</div>
-    <div class="slot-machine">
-        <div class="reel"><img src="images/cherry.png"></div>
-        <div class="reel"><img src="images/lemon.png"></div>
-        <div class="reel"><img src="images/watermelon.png"></div>
-    </div>
-    <button id="spin-btn">Крутить</button>
+  <header>
+    <img id="logo" src="images/slot.png" alt="Rofl" />
+    <h1>Rofl Casino</h1>
+  </header>
 
-    <audio id="spin-sound" src="sounds/spin.mp3"></audio>
-    <audio id="win-sound" src="sounds/win.mp3"></audio>
-    <audio id="lose-sound" src="sounds/lose.mp3"></audio>
+  <main class="stage">
+    <section class="panel" style="max-width:960px; width:100%;">
+      <div class="top-row">
+        <div id="balance">Баланс: <span id="balValue">1000</span> 💰</div>
+        <div id="message" class="muted">Готово — нажми SPIN</div>
+      </div>
 
-    <script>
-        const images = [
-            "images/cherry.png",
-            "images/lemon.png",
-            "images/watermelon.png",
-            "images/seven.png",
-            "images/bar.png"
-        ];
+      <div class="reel-area" id="reelArea" style="margin-top:14px;">
+        <canvas id="sparksCanvas"></canvas>
 
-        let balance = parseInt(localStorage.getItem("balance")) || 1000;
-        const balanceDisplay = document.getElementById("balance");
-        const reels = document.querySelectorAll(".reel img");
-        const spinBtn = document.getElementById("spin-btn");
+        <!-- each reel keeps a .reel-inner where floating layers will be injected -->
+        <div class="reel" data-index="0"><div class="reel-inner"><img src="images/banana.png" alt="sym0" /></div></div>
+        <div class="reel" data-index="1"><div class="reel-inner"><img src="images/star.png" alt="sym1" /></div></div>
+        <div class="reel" data-index="2"><div class="reel-inner"><img src="images/gem.png" alt="sym2" /></div></div>
+      </div>
 
-        const spinSound = document.getElementById("spin-sound");
-        const winSound = document.getElementById("win-sound");
-        const loseSound = document.getElementById("lose-sound");
+      <div class="controls" style="margin-top:14px;">
+        <button id="spinBtn">КРУТИ!</button>
+      </div>
+    </section>
+  </main>
 
-        function updateBalanceDisplay() {
-            balanceDisplay.textContent = `Баланс: ${balance}`;
+  <!-- sounds -->
+  <audio id="clickSound" src="sounds/click.mp3" preload="auto"></audio>
+  <audio id="winSound" src="sounds/win.mp3" preload="auto"></audio>
+  <audio id="loseSound" src="sounds/lose.mp3" preload="auto"></audio>
+  <audio id="jackpotSound" src="sounds/jackpot.mp3" preload="auto"></audio>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+  (function(){
+    // -------------- CONFIG --------------
+    const TOTAL_DURATION = 9000;            // ms total for sequential spinning
+    const REEL_COUNT = 3;
+    const DURATION_PER_REEL = TOTAL_DURATION / REEL_COUNT;
+    const CHANGE_INTERVAL = 100;            // ms between symbol ticks
+    const STAKE = 100;
+    const MAX_MOTION_BLUR = 6;              // px, max container blur at start
+    const SYMBOL_LIFETIME = 700;           // ms — how long a symbol lives visually before removal
+    // particle config
+    const PARTICLE_BASE_OPACITY = 0.62;
+    const PARTICLE_FADE = 0.96;
+    const PARTICLE_SHRINK = 0.96;
+
+    // -------------- DOM --------------
+    const reelEls = Array.from(document.querySelectorAll('.reel'));
+    const reelInners = reelEls.map(r => r.querySelector('.reel-inner'));
+    const spinBtn = document.getElementById('spinBtn');
+    const messageEl = document.getElementById('message');
+    const balValueEl = document.getElementById('balValue');
+    const canvas = document.getElementById('sparksCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // symbols (paths to your images)
+    const SYMBOLS = [
+      {name:'banana', file:'images/banana.png'},
+      {name:'star',   file:'images/star.png'},
+      {name:'gem',    file:'images/gem.png'},
+      {name:'cherry', file:'images/cherry.png'},
+      {name:'bell',   file:'images/bell.png'},
+      {name:'lemon',  file:'images/lemon.png'}
+    ];
+
+    // sounds
+    const clickSound = document.getElementById('clickSound');
+    const winSound = document.getElementById('winSound');
+    const loseSound = document.getElementById('loseSound');
+    const jackpotSound = document.getElementById('jackpotSound');
+    try { clickSound.volume = 0.28; winSound.volume = 0.55; loseSound.volume = 0.4; jackpotSound.volume = 0.75; } catch(e){}
+
+    // -------------- local balance (no fetch) --------------
+    let currentBalance = parseInt(localStorage.getItem('rc_balance')) || 1000;
+    balValueEl.textContent = currentBalance;
+
+    function saveBalance(){ localStorage.setItem('rc_balance', String(currentBalance)); }
+    function setMessage(text, timeout=2200){
+      messageEl.textContent = text;
+      if (timeout>0){
+        setTimeout(()=>{ messageEl.textContent = 'Готово — нажми SPIN'; }, timeout);
+      }
+    }
+
+    // -------------- Preload images (nice to have) --------------
+    SYMBOLS.forEach(s => {
+      const i = new Image();
+      i.src = s.file;
+    });
+
+    // -------------- Particles system (canvas) --------------
+    let particles = [];
+    let canvasW = 0, canvasH = 0, rafId = null;
+
+    function resizeCanvas(){
+      const rect = document.getElementById('reelArea').getBoundingClientRect();
+      canvasW = Math.ceil(rect.width);
+      canvasH = Math.ceil(rect.height);
+      canvas.width = canvasW * devicePixelRatio;
+      canvas.height = canvasH * devicePixelRatio;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function createParticle(x,y,intensity=1){
+      particles.push({
+        x, y,
+        vx: (Math.random()-0.5) * (0.6 + intensity*1.2),
+        vy: (Math.random()-0.8) * (0.3 + intensity*0.8),
+        size: 1.5 + Math.random()*4 * (0.6 + intensity*0.6),
+        alpha: PARTICLE_BASE_OPACITY * (0.8 + Math.random()*0.4),
+        born: performance.now()
+      });
+    }
+
+    function emitSparksFromReelSimple(reelIndex, intensity=1, count=6){
+      const reel = reelEls[reelIndex];
+      if (!reel) return;
+      const containerRect = document.getElementById('reelArea').getBoundingClientRect();
+      const rRect = reel.getBoundingClientRect();
+      const x = (rRect.left + rRect.right)/2 - containerRect.left;
+      const y = (rRect.top + rRect.bottom)/2 - containerRect.top;
+      const spawnCount = Math.max(2, Math.round(count * (0.6 + intensity*1.4)));
+      for (let i=0;i<spawnCount;i++){
+        createParticle(x + (Math.random()-0.5)* (rRect.width*0.6), y + (Math.random()-0.5)* (rRect.height*0.6), intensity);
+      }
+    }
+
+    function updateParticles(now){
+      ctx.clearRect(0,0,canvasW,canvasH);
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = particles.length-1; i>=0; i--){
+        const p = particles[i];
+        // motion
+        p.vx *= 0.995;
+        p.vy += 0.02;
+        p.x += p.vx;
+        p.y += p.vy;
+        // fade & shrink
+        p.alpha *= PARTICLE_FADE;
+        p.size *= PARTICLE_SHRINK;
+        // draw (muted color)
+        if (p.alpha < 0.02 || p.size < 0.3) { particles.splice(i,1); continue; }
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(1, p.size*3));
+        // muted blue-ish
+        g.addColorStop(0, `rgba(170,200,255,${Math.min(1,p.alpha*1.0)})`);
+        g.addColorStop(0.6, `rgba(170,200,255,${Math.max(0,p.alpha*0.45)})`);
+        g.addColorStop(1, `rgba(170,200,255,0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.6,p.size), 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function startParticleLoop(){
+      if (rafId) return;
+      function loop(now){
+        updateParticles(now);
+        rafId = requestAnimationFrame(loop);
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+    startParticleLoop();
+
+    // -------------- Utility / small helpers --------------
+    function randSym(){ return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]; }
+    function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
+    function playSafe(audio){ try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){} }
+
+    // Create a floating img element inside a reel inner
+    function createFloatingSymbol(reelInner, symObj){
+      const img = document.createElement('img');
+      img.src = symObj.file;
+      img.alt = symObj.name;
+      // initial "far" state
+      img.style.transition = 'transform 120ms linear, filter 120ms linear, opacity 120ms linear';
+      img.style.transform = 'translate(-50%,-50%) scale(0.72)'; // far small
+      img.style.filter = 'brightness(0.75) blur(3px)';
+      img.style.opacity = '0.78';
+      reelInner.appendChild(img);
+      // next frame -> animate to center (scale 1, no blur)
+      requestAnimationFrame(()=> {
+        // slightly longer transition to feel smooth
+        img.style.transition = `transform ${Math.max(120, CHANGE_INTERVAL*0.9)}ms linear, filter ${Math.max(120, CHANGE_INTERVAL*0.9)}ms linear, opacity ${Math.max(120, CHANGE_INTERVAL*0.9)}ms linear`;
+        img.style.transform = 'translate(-50%,-50%) scale(1)';
+        img.style.filter = 'brightness(1) blur(0px)';
+        img.style.opacity = '1';
+      });
+      // schedule shrinking/fade out later (to simulate passing center -> far again)
+      const removalTimeout = setTimeout(()=> {
+        img.style.transition = 'transform 260ms linear, filter 260ms linear, opacity 260ms linear';
+        img.style.transform = 'translate(-50%,-50%) scale(0.72)';
+        img.style.filter = 'brightness(0.78) blur(3px)';
+        img.style.opacity = '0.5';
+        // remove a bit later
+        setTimeout(()=> { if (img && img.parentNode) img.parentNode.removeChild(img); }, 360);
+      }, SYMBOL_LIFETIME);
+      // safety cleanup if something else removes it early
+      img._cleanup = ()=>{ clearTimeout(removalTimeout); if (img && img.parentNode) img.parentNode.removeChild(img); };
+      return img;
+    }
+
+    // -------------- Result generation (same logic as у тебя) --------------
+    function generateResult(){
+      const res = [];
+      const chance = Math.random()*100;
+      if (chance <= 1){
+        const sym = randSym();
+        res.push(sym,sym,sym);
+      } else if (chance <= 21){
+        const s1 = randSym();
+        let s2;
+        do { s2 = randSym(); } while (s2.name === s1.name);
+        if (Math.random() < 0.5) res.push(s1,s1,s2); else res.push(s1,s2,s1);
+      } else {
+        while(res.length < 3){
+          const s = randSym();
+          if (!res.find(r=>r.name===s.name)) res.push(s);
+        }
+      }
+      return res;
+    }
+
+    // -------------- Spin logic (sequential per reel) --------------
+    let isSpinning = false;
+
+    async function doSpin(){
+      if (isSpinning) return;
+      if (currentBalance < STAKE) { setMessage('Недостаточно средств!', 2000); return; }
+      isSpinning = true;
+      spinBtn.disabled = true;
+      setMessage('');
+      currentBalance -= STAKE;
+      balValueEl.textContent = currentBalance;
+      saveBalance();
+
+      const finalResult = generateResult();
+
+      // tell bot that app opened/spin started (keeps previous behaviour)
+      if (window.Telegram && Telegram.WebApp) {
+        try { Telegram.WebApp.sendData(JSON.stringify({ action: 'start_game' })); } catch(e){}
+      }
+
+      // sequential reels
+      for (let r=0; r<REEL_COUNT; r++){
+        const reelEl = reelEls[r];
+        const inner = reelInners[r];
+        reelEls.forEach((el, idx) => el.classList.toggle('active', idx === r));
+        const startT = performance.now();
+        const duration = DURATION_PER_REEL;
+        let elapsed = 0;
+
+        // While this reel is spinning, we insert floating symbols each tick,
+        // animate container motion-blur for first third of spin (fast part)
+        while (elapsed < duration){
+          // compute overall progress on this reel (0..1)
+          const now = performance.now();
+          elapsed = now - startT;
+          const spinProgress = Math.min(1, elapsed / duration);
+
+          // motion blur for first ~1/3 of the reel duration (smoothly decreasing)
+          let blurVal = 0;
+          const motionPhase = 0.33;
+          if (spinProgress < motionPhase){
+            blurVal = MAX_MOTION_BLUR * (1 - (spinProgress / motionPhase));
+          } else blurVal = 0;
+          // apply blur to inner container (affects whole reel visuals while fast)
+          inner.style.filter = blurVal > 0.4 ? `blur(${blurVal}px)` : '';
+
+          // create new floating symbol
+          const sym = randSym();
+          createFloatingSymbol(inner, sym);
+
+          // sound click per tick (soft)
+          playSafe(clickSound);
+
+          // spawn small particles from this reel (intensity depends on remaining)
+          const remaining = Math.max(0, duration - elapsed);
+          const intensity = Math.max(0.15, remaining / duration);
+          emitSparksFromReelSimple(r, intensity, 4);
+
+          // await next tick
+          await sleep(CHANGE_INTERVAL);
+          // loop updates elapsed at top
         }
 
-        function saveBalance() {
-            localStorage.setItem("balance", balance);
+        // set final symbol clearly (use a strong arrival)
+        // remove pending floating images to avoid overlap: we'll keep a clean visible final
+        Array.from(inner.querySelectorAll('img')).forEach(img => {
+          // quickly remove old ones
+          try{ if (img && img._cleanup) img._cleanup(); }catch(e){}
+        });
+
+        // create final big arrival
+        const finalSym = finalResult[r];
+        const finalImg = document.createElement('img');
+        finalImg.src = finalSym.file;
+        finalImg.alt = finalSym.name;
+        finalImg.style.transition = 'transform 260ms cubic-bezier(.2,.9,.2,1), filter 260ms ease, opacity 260ms ease';
+        finalImg.style.transform = 'translate(-50%,-50%) scale(0.7)';
+        finalImg.style.filter = 'brightness(0.78) blur(2px)';
+        finalImg.style.opacity = '0.9';
+        inner.appendChild(finalImg);
+
+        // animate into center
+        requestAnimationFrame(()=> {
+          finalImg.style.transform = 'translate(-50%,-50%) scale(1)';
+          finalImg.style.filter = 'brightness(1) blur(0px)';
+          finalImg.style.opacity = '1';
+        });
+
+        playSafe(clickSound);
+
+        // small burst of particles
+        for (let i=0;i<8;i++) createParticle(
+          (inner.getBoundingClientRect().left + inner.getBoundingClientRect().right)/2 - document.getElementById('reelArea').getBoundingClientRect().left + (Math.random()-0.5)*20,
+          (inner.getBoundingClientRect().top + inner.getBoundingClientRect().bottom)/2 - document.getElementById('reelArea').getBoundingClientRect().top + (Math.random()-0.5)*20,
+          0.95 + Math.random()*0.6
+        );
+
+        // keep highlighted slightly after stop
+        await sleep(140);
+        reelEl.classList.remove('active');
+      } // end reels loop
+
+      // determine outcome based on final images
+      const names = reelInners.map(inner => {
+        const topImg = inner.querySelector('img:last-of-type');
+        const src = topImg ? topImg.src.split('/').pop().split('?')[0] : '';
+        return SYMBOLS.find(s => s.file.endsWith(src))?.name || src;
+      });
+
+      // evaluate wins (same rules)
+      let change = 0;
+      let message = '';
+      const allEqual = names.every(v => v === names[0]);
+      const anyPair = (names[0] === names[1]) || (names[1] === names[2]) || (names[0] === names[2]);
+
+      if (allEqual){
+        if (names[0] === 'gem'){
+          change = 1000;
+          message = '🎉 JACKPOT!';
+          playSafe(jackpotSound);
+        } else {
+          change = 800;
+          message = '🔥 Большой выигрыш!';
+          playSafe(winSound);
         }
+      } else if (anyPair){
+        change = 200;
+        message = '😉 Почти — мелкий выигрыш';
+        playSafe(winSound);
+      } else {
+        change = 0;
+        message = '🙁 Увы — попробуй ещё';
+        playSafe(loseSound);
+      }
 
-        function spin() {
-            if (balance < 100) {
-                alert("Недостаточно средств!");
-                return;
-            }
+      if (change > 0){
+        flashBackground();
+        highlightWinningReels(names);
+      }
 
-            balance -= 100;
-            updateBalanceDisplay();
-            saveBalance();
+      currentBalance += change;
+      balValueEl.textContent = currentBalance;
+      saveBalance();
+      setMessage(message, 2400);
 
-            spinBtn.disabled = true;
-            spinSound.play();
+      // send result to Telegram bot (keeps previous behaviour)
+      if (window.Telegram && Telegram.WebApp){
+        try {
+          Telegram.WebApp.sendData(JSON.stringify({
+            action: 'slot_result',
+            result: names.join(','),
+            change: (change - STAKE)
+          }));
+        } catch(e){}
+      }
 
-            setTimeout(() => {
-                let results = [];
-                for (let i = 0; i < reels.length; i++) {
-                    let rand = Math.floor(Math.random() * images.length);
-                    reels[i].src = images[rand];
-                    results.push(rand);
-                }
+      isSpinning = false;
+      spinBtn.disabled = false;
+    } // end doSpin
 
-                if (results[0] === results[1] && results[1] === results[2]) {
-                    balance += 500;
-                    updateBalanceDisplay();
-                    saveBalance();
-                    winSound.play();
-                    alert("🎉 Победа! +500");
-                } else {
-                    loseSound.play();
-                }
+    // subtle BG flash on win
+    function flashBackground(){
+      const orig = document.body.style.background;
+      document.body.style.transition = 'background 600ms ease';
+      document.body.style.background = 'linear-gradient(180deg, rgba(20,40,70,0.9), rgba(6,22,38,0.98))';
+      setTimeout(()=> { document.body.style.background = orig || 'linear-gradient(180deg, var(--bg-a), var(--bg-b))'; }, 1200);
+    }
 
-                spinBtn.disabled = false;
-            }, 1500);
+    // highlight reels that are part of a win
+    function highlightWinningReels(names){
+      if (names.every(n => n === names[0])){
+        reelEls.forEach(el => { el.classList.add('win'); setTimeout(()=> el.classList.remove('win'), 2000); });
+      } else {
+        for (let i=0;i<names.length;i++){
+          const a = names[i];
+          if (names.filter(n=>n===a).length > 1){
+            const el = reelEls[i];
+            el.classList.add('win');
+            setTimeout(()=> el.classList.remove('win'), 2000);
+          }
         }
+      }
+    }
 
-        spinBtn.addEventListener("click", spin);
-        updateBalanceDisplay();
-    </script>
+    // -------------- Events --------------
+    spinBtn.addEventListener('click', ()=> {
+      doSpin().catch(e => { console.error(e); isSpinning=false; spinBtn.disabled=false; });
+    });
+
+    // resize observer for canvas
+    const ro = new ResizeObserver(() => { resizeCanvas(); });
+    ro.observe(document.getElementById('reelArea'));
+
+    // Telegram WebApp ready
+    if (window.Telegram && Telegram.WebApp) {
+      try { Telegram.WebApp.ready(); Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" })); }catch(e){}
+    }
+
+    // initial UI state
+    balValueEl.textContent = currentBalance;
+    setMessage('Готово — нажми SPIN', 0);
+
+    // keep particle loop running (already started)
+    // End of IIFE
+  })();
+  </script>
 </body>
 </html>

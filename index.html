@@ -350,8 +350,8 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
       // **увеличенное свечение**
-      ctx.shadowBlur = Math.max(12, glowRadius * 0.95);              // <- сильнее blur
-      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.92);     // <- более насыщенная альфа
+      ctx.shadowBlur = Math.max(12, glowRadius * 3);              // <- сильнее blur
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 3);     // <- более насыщенная альфа
       ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.02);
       ctx.lineWidth = Math.max(12, glowRadius * 0.34);               // <- толще stroke чтобы glow был заметнее
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 12);
@@ -706,3 +706,4 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 </script>
 </body>
 </html>
+

@@ -344,9 +344,9 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
     // DRAW STRONGER GLOW (shadow stroke) — draw before reel so reel is on top
     if (r.spinning){
-      const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
+      const glowStrength = Math.max(0.02, (scale - 3) / (MAX_SCALE_BOOST - 6));
       const baseSize = Math.max(reelW, reelH);
-      const glowRadius = baseSize * (0.45 + glowStrength * 0.32) * scale;
+      const glowRadius = baseSize * (1 + glowStrength * 1) * scale;
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
       // **увеличенное свечение**
@@ -706,4 +706,5 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 </script>
 </body>
 </html>
+
 

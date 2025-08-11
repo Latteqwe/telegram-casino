@@ -50,7 +50,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 .row label{font-weight:700}
 .slider{width:200px}
 .theme-options{display:flex;gap:10px}
-.theme-box{width:86px;height:56px;border-radius:8px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:12px}
+.theme-box{
+  width:86px;height:56px;border-radius:8px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+  text-align:center;padding:6px;box-sizing:border-box;font-weight:700;
+}
 .inline-btn{padding:6px 8px;border-radius:8px;border:none;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer}
 </style>
 </head>
@@ -323,8 +327,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
             motionBlur = MAX_MOTION_BLUR * smoothstep(t);
           } else {
             // middle plateau
-            const rampUpT = Math.max(0, Math.min(1, (elapsed - BLUR_RAMP_START_MS) / 1.0)); // instant ramp up after start ramp (we already waited start ramp ms)
-            // keep full blur during middle
             motionBlur = MAX_MOTION_BLUR;
           }
         }
@@ -333,10 +335,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       // DRAW GLOW only when reel is spinning
       if (r.spinning){
         const glowStrength = Math.max(0.02, (r.visualScale - 1) / (MAX_SCALE_BOOST - 1));
-        const glowRadius = Math.max(reelW, reelH) * (0.9 + glowStrength * 0.8);
+        // <<< радиус свечения ЗНАЧИТЕЛЬНО уменьшён, насыщенность сохранилась >>>
+        const glowRadius = Math.max(reelW, reelH) * (0.48 + glowStrength * 0.32);
         const gx = x + reelW/2;
         const gy = centerY;
-        const g = ctx.createRadialGradient(gx, gy, reelW*0.12, gx, gy, glowRadius);
+        const g = ctx.createRadialGradient(gx, gy, reelW*0.08, gx, gy, glowRadius);
         g.addColorStop(0, hexOrColorWithAlpha(glowColorCss, 0.55));
         g.addColorStop(0.35, hexOrColorWithAlpha(glowColorCss, 0.28));
         g.addColorStop(1, hexOrColorWithAlpha(glowColorCss, 0.0));
@@ -466,7 +469,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   // ----- spin orchestration -----
   let spinningFlag = false, autoSpin=false, autoSpinTimer=null;
-  const SETTINGS_KEY = 'rc_settings_radial_v5';
+  const SETTINGS_KEY = 'rc_settings_radial_v6';
   let settings = { theme:'dark', musicEnabled:false, musicVolume:0.28, soundsEnabled:true, vibrationEnabled:true, autoSpin:false };
 
   async function doSpin(){
@@ -627,15 +630,20 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   themeDark.addEventListener('click', ()=> { settings.theme='dark'; applySettingsToUI(); applySettingsEffect(); });
   themeRed.addEventListener('click', ()=> { settings.theme='red'; applySettingsToUI(); applySettingsEffect(); });
 
+  // Быстрые ставки — более надёжная обработка (+/-)
   document.querySelectorAll('.quick-stakes button').forEach(btn => {
-    btn.addEventListener('click', ()=> {
-      const step = btn.dataset.step;
+    btn.addEventListener('click', (ev) => {
+      const ds = btn.getAttribute('data-step');
       let val = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
-      if (step.startsWith('+')) val += Number(step.slice(1));
-      else if (step.startsWith('-')) val += Number(step);
+      if (ds === 'МАКС' || btn.id === 'maxStakeBtn') { stakeInput.value = Math.max(10, currentBalance); return; }
+      const delta = parseInt(ds, 10);
+      if (!isNaN(delta)){
+        val = val + delta;
+      }
       stakeInput.value = Math.max(10, val);
     });
   });
+
   maxStakeBtn.addEventListener('click', ()=> { stakeInput.value = Math.max(10, currentBalance); });
   stakeInput.addEventListener('blur', ()=> { stakeInput.value = Math.max(10, Math.floor(Number(stakeInput.value) || 100)); });
 
@@ -656,7 +664,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   function updateBreathing(){ if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing'); else spinBtn.classList.remove('breathing'); }
 
   // ----- balance -----
-  const BAL_KEY = 'rc_balance_radial_v5';
+  const BAL_KEY = 'rc_balance_radial_v6';
   let currentBalance = parseInt(localStorage.getItem(BAL_KEY)) || 1000;
   document.getElementById('balValue').textContent = currentBalance;
   function saveBalance(){ localStorage.setItem(BAL_KEY, String(currentBalance)); }

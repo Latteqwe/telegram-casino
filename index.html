@@ -6,12 +6,12 @@
 <title>Rofl Casino — Mini App</title>
 <link rel="icon" href="images/slot.png" />
 <style>
-/* (тот же CSS что был — не менял дальше визуал) */
 :root{
   --bg-a: #031024; --bg-b: #061c36; --text: #cfe8ff;
   --panel-a: rgba(255,255,255,0.02); --panel-b: rgba(255,255,255,0.01);
   --panel-bg: rgba(3,16,28,0.52);
-  --btn-a: #91b7e7; --btn-b: #2b5f91; --glow-color: rgba(140,170,223,0.40);
+  --btn-a: #91b7e7; --btn-b: #2b5f91;
+  --glow-color: rgba(140,170,223,0.46);
   --win-a: rgba(28,60,100,0.98); --win-b: rgba(6,20,34,0.96);
   --modal-a: rgba(6,12,22,0.98); --modal-b: rgba(8,18,32,0.98);
   --muted: #bfd9ff;
@@ -91,6 +91,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     </section>
   </main>
 
+  <!-- sounds -->
   <audio id="clickSound" src="sounds/click.mp3" preload="auto"></audio>
   <audio id="winSound" src="sounds/win.mp3" preload="auto"></audio>
   <audio id="loseSound" src="sounds/lose.mp3" preload="auto"></audio>
@@ -133,20 +134,16 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-/* ---- обновлённый рабочий код: фикс для нестарта спина + убрал 'пятно' за барабанами ---- */
-
 (function(){
-  // config
   const REEL_COUNT = 3;
   const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
   const TOTAL_SPIN_DURATION = 7000;
   const STRIP_REPEATS = 8;
   const MAX_MOTION_BLUR = 18;
   const START_SLOW_FRAC = 0.06;
-  const MAX_SCALE_BOOST = 1.18;
+  const MAX_SCALE_BOOST = 1.24; // чуть больше увеличения при прокруте
   const SCALE_EASE = 0.16;
 
-  // DOM
   const reelArea = document.getElementById('reelArea');
   const canvas = document.getElementById('reelsCanvas');
   const ctx = canvas.getContext('2d', { alpha: true });
@@ -173,7 +170,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   try { clickSound.volume=0.28; winSound.volume=0.95; loseSound.volume=0.4; jackpotSound.volume=0.9; } catch(e){}
 
-  // canvas layout
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let W=0,H=0,reelW=0,reelH=0,reelX=[];
   function computeLayout(){
@@ -181,8 +177,8 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     W = Math.max(320, rect.width);
     H = Math.max(120, rect.height);
     const gap = Math.min(28, W * 0.02);
-    reelW = Math.min(340, Math.max(96, Math.floor((W - gap*2) / 3)));
-    reelH = Math.min(H * 0.96, reelW * 1.08, 420);
+    reelW = Math.min(360, Math.max(96, Math.floor((W - gap*2) / 3)));
+    reelH = Math.min(H * 0.96, reelW * 1.08, 460);
     const total = reelW * REEL_COUNT + gap * (REEL_COUNT - 1);
     const startX = (W - total) / 2;
     reelX = [];
@@ -201,7 +197,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   }
   window.addEventListener('resize', resize);
 
-  // preload
   const SYMBOLS = [];
   for (let i=0;i<SYMBOL_FILES.length;i++){
     const img = new Image();
@@ -209,7 +204,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     SYMBOLS.push({ img, name: SYMBOL_FILES[i].split('/').pop().split('.')[0] });
   }
 
-  // Reel model
   class Reel {
     constructor(i){
       this.i = i;
@@ -228,7 +222,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       this.visualScale = 1.0;
     }
     start(finalSymbolIndex, duration){
-      console.log('Reel.start', this.i, 'finalSymbolIndex=', finalSymbolIndex, 'duration=', duration);
       const symbolH = Math.round(reelH * 0.86);
       const rotations = 3 + Math.floor(Math.random()*2);
       let found = -1;
@@ -248,15 +241,13 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   const reels = [];
   for (let i=0;i<REEL_COUNT;i++) reels.push(new Reel(i));
 
-  // css var helper
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''; }
 
-  // draw loop (note: inside mask we now fill with panel-bg to avoid the visible "patch")
   function draw(){
     ctx.clearRect(0,0,W,H);
     const symbolH = Math.round(reelH * 0.86);
     const centerY = H/2;
-    const glowColorCss = cssVar('--glow-color') || 'rgba(140,170,223,0.40)';
+    const glowColorCss = cssVar('--glow-color') || 'rgba(140,170,223,0.46)';
 
     for (let ri=0; ri<REEL_COUNT; ri++){
       const r = reels[ri];
@@ -278,7 +269,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
         }
       }
 
-      // smooth scale
       const targetScale = r.spinning ? MAX_SCALE_BOOST : 1.0;
       r.visualScale += (targetScale - r.visualScale) * SCALE_EASE;
 
@@ -290,20 +280,26 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
         motionBlur = (1 - phase) * MAX_MOTION_BLUR;
       }
 
-      // outer glow
+      // ---- NEW: draw outer glow and inner fill with page gradient to avoid visible rectangle ----
       if (r.visualScale > 1.005){
+        const bgGrad = ctx.createLinearGradient(0, (H - reelH)/2, 0, (H - reelH)/2 + reelH);
+        bgGrad.addColorStop(0, cssVar('--bg-a') || '#031024');
+        bgGrad.addColorStop(1, cssVar('--bg-b') || '#061c36');
+
+        // Big outer rect with shadow (glow) filled with page gradient so glow stands out
         ctx.save();
         ctx.shadowColor = glowColorCss;
-        ctx.shadowBlur = 64;
-        ctx.fillStyle = 'rgba(0,0,0,0)';
-        roundRectPath(ctx, x - 10, (H - reelH)/2 - 10, reelW + 20, reelH + 20, 20);
+        ctx.shadowBlur = 84; // усиленное, заметнее
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = bgGrad;
+        roundRectPath(ctx, x - 12, (H - reelH)/2 - 12, reelW + 24, reelH + 24, 22);
         ctx.fill();
         ctx.restore();
 
-        // **IMPORTANT FIX**: fill the INSIDE with panel-bg (same as panel) so no odd rectangle shows
+        // inside: clip and fill with same background gradient (so it's visually seamless)
         ctx.save();
         ctx.beginPath(); roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12); ctx.clip();
-        ctx.fillStyle = cssVar('--panel-bg') || 'rgba(3,16,28,0.52)';
+        ctx.fillStyle = bgGrad;
         ctx.fillRect(x, (H - reelH)/2, reelW, reelH);
         ctx.restore();
       } else {
@@ -314,7 +310,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
         ctx.restore();
       }
 
-      // draw symbols clipped
+      // draw symbols
       ctx.save();
       roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12);
       ctx.clip();
@@ -367,7 +363,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
       ctx.restore();
 
-      // frame
+      // thin frame
       ctx.save();
       ctx.strokeStyle = 'rgba(255,255,255,0.03)';
       ctx.lineWidth = 1;
@@ -381,25 +377,43 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function roundRectStroke(ctx,x,y,w,h,r){ roundRectPath(ctx,x,y,w,h,r); ctx.stroke(); }
 
-  // probabilities
+  // probabilities: jackpot 1.5%, pair 35%
   function generateResult(){
     const chance = Math.random()*100;
-    if (chance < 1){ const s = Math.floor(Math.random()*SYMBOLS.length); return [s,s,s]; }
-    else if (chance < 31){ const s1 = Math.floor(Math.random()*SYMBOLS.length); let s2; do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1); if (Math.random() < 0.5) return [s1,s1,s2]; else return [s1,s2,s1]; }
-    else { const arr=[]; while(arr.length<3){ const s=Math.floor(Math.random()*SYMBOLS.length); if(!arr.includes(s)) arr.push(s);} return arr; }
+    if (chance < 1.5){
+      const s = Math.floor(Math.random()*SYMBOLS.length);
+      return [s,s,s];
+    } else if (chance < 36.5){
+      const s1 = Math.floor(Math.random()*SYMBOLS.length);
+      let s2;
+      do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1);
+      if (Math.random() < 0.5) return [s1,s1,s2]; else return [s1,s2,s1];
+    } else {
+      const arr = [];
+      while (arr.length < 3){
+        const s = Math.floor(Math.random()*SYMBOLS.length);
+        if (!arr.includes(s)) arr.push(s);
+      }
+      return arr;
+    }
   }
 
-  // spin orchestration
-  let spinningFlag = false, autoSpin=false, autoSpinTimer=null;
+  let spinningFlag = false;
+  let autoSpin = false;
+  let autoSpinTimer = null;
 
-  // SETTINGS declared early to avoid reference errors in doSpin
-  const SETTINGS_KEY = 'rc_settings_v4';
+  // settings + persistence
+  const SETTINGS_KEY = 'rc_settings_v5';
   let settings = {
-    theme: 'dark', musicEnabled:false, musicVolume:0.28, soundsEnabled:true, vibrationEnabled:true, autoSpin:false
+    theme: 'dark',
+    musicEnabled: false,
+    musicVolume: 0.28,
+    soundsEnabled: true,
+    vibrationEnabled: true,
+    autoSpin: false
   };
 
   async function doSpin(){
-    console.log('doSpin called');
     if (spinningFlag) return;
     const stake = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
     if (stake <= 0){ setMessage('Поставь корректную ставку',2000); return; }
@@ -454,11 +468,18 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     else { change = 0; msg = '🙁 Увы — попробуй ещё'; if (settings.soundsEnabled) playSafe(loseSound); }
 
     if (change > 0 && settings.vibrationEnabled){
-      try { if (navigator.vibrate) { if (change >= stakeUsed * 8) navigator.vibrate([70,40,70,80]); else navigator.vibrate([40,20,40]); } } catch(e){}
+      try {
+        if (navigator.vibrate) {
+          if (change >= stakeUsed * 8) navigator.vibrate([70,40,70,80]);
+          else navigator.vibrate([40,20,40]);
+        }
+      } catch(e){}
     }
 
     if (change > 0) smoothWinGradient();
-    currentBalance += change; document.getElementById('balValue').textContent = currentBalance; saveBalance();
+    currentBalance += change;
+    document.getElementById('balValue').textContent = currentBalance;
+    saveBalance();
     setMessage(msg,2400);
 
     if (window.Telegram && Telegram.WebApp){
@@ -469,20 +490,23 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     spinBtn.disabled = false;
     spinBtn.classList.add('breathing');
 
-    if (autoSpin){ autoSpinTimer = setTimeout(()=> { if (!spinningFlag) doSpin(); }, 700); }
+    if (autoSpin){
+      autoSpinTimer = setTimeout(()=> {
+        if (!spinningFlag) doSpin();
+      }, 700);
+    }
   }
 
-  // settings functions (load/apply)
   function loadSettings(){
     try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) settings = Object.assign(settings, JSON.parse(raw)); } catch(e){}
     applySettingsToUI(); applySettingsEffect();
   }
   function saveSettings(){ try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e){} }
   function applySettingsToUI(){
-    document.getElementById('musicToggle').checked = !!settings.musicEnabled;
-    document.getElementById('musicVolume').value = settings.musicVolume ?? 0.28;
-    document.getElementById('soundsToggle').checked = !!settings.soundsEnabled;
-    document.getElementById('vibrateToggle').checked = !!settings.vibrationEnabled;
+    musicToggle.checked = !!settings.musicEnabled;
+    musicVolume.value = settings.musicVolume ?? 0.28;
+    soundsToggle.checked = !!settings.soundsEnabled;
+    vibrateToggle.checked = !!settings.vibrationEnabled;
     [themeLight, themeDark, themeRed].forEach(el => el.style.outline = 'none');
     if (settings.theme === 'light') themeLight.style.outline = '3px solid rgba(255,255,255,0.12)';
     else if (settings.theme === 'red') themeRed.style.outline = '3px solid rgba(255,255,255,0.12)';
@@ -491,11 +515,18 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     autoSpinBtn.textContent = autoSpin ? 'Auto: On' : 'Auto: Off';
   }
   function applySettingsEffect(){
-    if (settings.musicEnabled){ try { bgMusic.volume = settings.musicVolume; bgMusic.play().catch(()=>{}); } catch(e){} } else { try { bgMusic.pause(); } catch(e){} }
-    if (settings.soundsEnabled){ try { clickSound.volume = 0.28; winSound.volume = 0.95; loseSound.volume = 0.4; jackpotSound.volume = 0.9; } catch(e){} } else { try { clickSound.volume = 0; winSound.volume = 0; loseSound.volume = 0; jackpotSound.volume = 0; } catch(e){} }
+    if (settings.musicEnabled){
+      try { bgMusic.volume = settings.musicVolume; bgMusic.play().catch(()=>{}); } catch(e){}
+    } else { try { bgMusic.pause(); } catch(e){} }
+    if (settings.soundsEnabled){
+      try { clickSound.volume = 0.28; winSound.volume = 0.95; loseSound.volume = 0.4; jackpotSound.volume = 0.9; } catch(e){}
+    } else {
+      try { clickSound.volume = 0; winSound.volume = 0; loseSound.volume = 0; jackpotSound.volume = 0; } catch(e){}
+    }
     applyTheme(settings.theme);
     saveSettings();
   }
+
   function applyTheme(theme){
     if (theme === 'light'){
       document.documentElement.style.setProperty('--bg-a', '#f6f8fb');
@@ -504,7 +535,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       document.documentElement.style.setProperty('--panel-bg', 'rgba(255,255,255,0.96)');
       document.documentElement.style.setProperty('--btn-a', '#f3cfa8');
       document.documentElement.style.setProperty('--btn-b', '#d1a27a');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(90,140,200,0.42)');
+      document.documentElement.style.setProperty('--glow-color', 'rgba(90,140,200,0.52)');
       document.documentElement.style.setProperty('--win-a', 'rgba(255,230,200,0.98)');
       document.documentElement.style.setProperty('--win-b', 'rgba(255,245,240,0.96)');
       document.documentElement.style.setProperty('--modal-a', '#ffffff');
@@ -516,7 +547,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       document.documentElement.style.setProperty('--panel-bg', 'rgba(40,10,12,0.7)');
       document.documentElement.style.setProperty('--btn-a', '#e06a66');
       document.documentElement.style.setProperty('--btn-b', '#8b2f2f');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(220,80,90,0.46)');
+      document.documentElement.style.setProperty('--glow-color', 'rgba(220,80,90,0.56)');
       document.documentElement.style.setProperty('--win-a', 'rgba(120,20,28,0.98)');
       document.documentElement.style.setProperty('--win-b', 'rgba(40,8,10,0.96)');
       document.documentElement.style.setProperty('--modal-a', '#2b0c0f');
@@ -528,7 +559,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       document.documentElement.style.setProperty('--panel-bg', 'rgba(3,16,28,0.52)');
       document.documentElement.style.setProperty('--btn-a', '#91b7e7');
       document.documentElement.style.setProperty('--btn-b', '#2b5f91');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(140,170,223,0.40)');
+      document.documentElement.style.setProperty('--glow-color', 'rgba(140,170,223,0.46)');
       document.documentElement.style.setProperty('--win-a', 'rgba(28,60,100,0.98)');
       document.documentElement.style.setProperty('--win-b', 'rgba(6,20,34,0.96)');
       document.documentElement.style.setProperty('--modal-a', 'rgba(6,12,22,0.98)');
@@ -540,7 +571,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     if (modalPanel) modalPanel.style.background = `linear-gradient(180deg, ${cssVar('--modal-a')}, ${cssVar('--modal-b')})`;
   }
 
-  // UI wiring (simple)
   openSettings.addEventListener('click', ()=> { settingsModal.style.display = 'flex'; });
   closeSettings.addEventListener('click', ()=> { settingsModal.style.display = 'none'; applySettingsEffect(); });
 
@@ -581,20 +611,24 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   function updateBreathing(){ if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing'); else spinBtn.classList.remove('breathing'); }
 
-  // balance persistence
-  const BAL_KEY = 'rc_balance_v2';
+  const BAL_KEY = 'rc_balance_v3';
   let currentBalance = parseInt(localStorage.getItem(BAL_KEY)) || 1000;
   document.getElementById('balValue').textContent = currentBalance;
   function saveBalance(){ localStorage.setItem(BAL_KEY, String(currentBalance)); }
 
   function playSafe(audio){ try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){} }
   function setMessage(text, timeout=2200){ const m = document.getElementById('message'); m.textContent = text; if (timeout>0) setTimeout(()=>{ m.textContent = 'Готово — нажми SPIN'; }, timeout); }
-  function smoothWinGradient(){ const a = cssVar('--win-a'), b = cssVar('--win-b'); document.body.style.transition = 'background 900ms ease-in-out'; document.body.style.background = `linear-gradient(180deg, ${a}, ${b})`; setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900); }
+  function smoothWinGradient(){
+    const a = cssVar('--win-a') || 'rgba(28,60,100,0.98)';
+    const b = cssVar('--win-b') || 'rgba(6,20,34,0.96)';
+    document.body.style.transition = 'background 900ms ease-in-out';
+    document.body.style.background = `linear-gradient(180deg, ${a}, ${b})`;
+    setTimeout(()=> { document.body.style.background = ''; setTimeout(()=>{ document.body.style.transition=''; },900); }, 900);
+  }
 
-  // init: **call resize & loadSettings before attaching logic** (done above), start draw
   resize();
-  loadSettings(); // important — settings available before user actions
   requestAnimationFrame(draw);
+  loadSettings();
   updateBreathing();
 
   const ro = new ResizeObserver(()=> { resize(); });
@@ -605,8 +639,6 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   }
 
   window.addEventListener('beforeunload', ()=> { saveSettings(); saveBalance(); });
-
-  // expose for debug
   window._rc = { reels, SYMBOLS, settings };
 
 })();

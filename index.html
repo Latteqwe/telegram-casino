@@ -355,54 +355,53 @@ html, body, #reelArea {
       }
     }
 
-    // NEW: SMOOTHER "ALMOST-SQUARE" GLOW using more steps & gentler alpha ramp
+    // NEW: SMOOTHER & SMALLER "ALMOST-SQUARE" GLOW
     if (r.spinning){
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
 
-      // parameters for squared glow (smoothed)
+      // параметры свечения: меньше радиус, более плавный переход, сильнее скругление
       const baseSize = Math.max(reelW, reelH);
-      const glowBase = baseSize * 0.36 * scale;
-      const glowSteps = 14;         // increased steps -> smoother feather
-      const cornerRadius = 6;       // чуть-чуть скруглить края (6px)
+      const glowBase = baseSize * 0.18 * scale; // << уменьшили радиус (сильно)
+      const glowSteps = 20;                     // больше шагов -> плавнее
+      const cornerRadius = 12;                  // сильнее скруглить края
       const color = glowColorCss;
 
-      // draw concentric rounded rects expanding outward with decreasing alpha
+      // плавная формула alpha: комбинация степени и smoothstep для мягкой градации
       for (let s = glowSteps; s >= 1; s--){
         const t = s / glowSteps; // 1..0
-        // smoother alpha curve using a mild power
-        const alpha = 0.78 * Math.pow(t, 1.12) * (0.95 - (glowSteps - s) * 0.03);
+        // более мягкая (плавная) кривая прозрачности
+        const alpha = 0.82 * Math.pow(t, 1.6) * smoothstep(t);
 
-        // expand factors gradually so outer rect is bigger and softer
-        const expandX = (reelW * 0.42) * (1 + (1 - t) * 0.55) * (1 + (scale - 1) * 0.45);
-        const expandY = (reelH * 0.48) * (1 + (1 - t) * 0.55) * (1 + (scale - 1) * 0.45);
-        const w = reelW + expandX * (1.0 + (glowSteps - s) * 0.09);
-        const h = reelH + expandY * (1.0 + (glowSteps - s) * 0.09);
+        // гораздо меньшие expand, чтобы glow был компактный
+        const expandX = (reelW * 0.18) * (1 + (1 - t) * 0.35) * (1 + (scale - 1) * 0.3);
+        const expandY = (reelH * 0.20) * (1 + (1 - t) * 0.35) * (1 + (scale - 1) * 0.3);
+        const w = reelW + expandX * (1.0 + (glowSteps - s) * 0.04);
+        const h = reelH + expandY * (1.0 + (glowSteps - s) * 0.04);
 
         ctx.save();
         ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
         ctx.fillStyle = hexOrColorWithAlpha(color, 1.0);
 
-        // subtle shadow to soften edges but small to keep corners visible
-        // blur is proportional but smaller than before so corners stay more defined
-        ctx.shadowColor = hexOrColorWithAlpha(color, Math.min(0.9, alpha * 0.9));
-        ctx.shadowBlur = Math.max(1, (glowBase * 0.04) * (1 + (glowSteps - s) * 0.35));
+        // tiny shadow blur to soften edges but corners stay rounded nicely
+        ctx.shadowColor = hexOrColorWithAlpha(color, Math.min(0.9, alpha * 0.85));
+        ctx.shadowBlur = Math.max(0, (glowBase * 0.03) * (1 + (glowSteps - s) * 0.12));
         // draw rounded rect centered
         const rx = -w/2, ry = -h/2;
-        const rrad = Math.max(1, cornerRadius * t); // inner steps slightly smaller radius
+        const rrad = Math.max(2, cornerRadius * t); // inner steps чуть поменьше радиус
         roundRectPath(ctx, rx, ry, w, h, rrad);
         ctx.fill();
         ctx.restore();
       }
 
-      // softer rim stroke to give subtle contour
+      // лёгкий тонкий контур чтобы выделить форму, не громоздко
       ctx.save();
       ctx.lineJoin = 'miter';
       ctx.miterLimit = 2;
-      ctx.globalAlpha = 0.09;
-      ctx.lineWidth = Math.max(4, (reelW * 0.06) * scale);
-      ctx.strokeStyle = hexOrColorWithAlpha(color, 0.88);
-      roundRectPath(ctx, -reelW/2 - 3, -reelH/2 - 3, reelW + 6, reelH + 6, Math.max(2, cornerRadius * 0.6));
+      ctx.globalAlpha = 0.07;
+      ctx.lineWidth = Math.max(2, (reelW * 0.035) * scale);
+      ctx.strokeStyle = hexOrColorWithAlpha(color, 0.9);
+      roundRectPath(ctx, -reelW/2 - 2.5, -reelH/2 - 2.5, reelW + 5, reelH + 5, Math.max(2, cornerRadius * 0.7));
       ctx.stroke();
       ctx.restore();
 

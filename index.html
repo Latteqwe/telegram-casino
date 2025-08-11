@@ -374,7 +374,7 @@ html, body, #reelArea {
       ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.08);
       ctx.lineWidth = Math.max(10, glowRadius * 0.85);
       // используем фиксированный cornerRadius, как просил — большой, "почти квадратный"
-      const cornerRadius = 35;
+      const cornerRadius = 12;
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, cornerRadius);
       ctx.stroke();
 
@@ -733,3 +733,4 @@ html, body, #reelArea {
 </script>
 </body>
 </html>
+

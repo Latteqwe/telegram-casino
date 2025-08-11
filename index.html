@@ -45,6 +45,12 @@
       document.getElementById('balance').textContent = `Баланс: ${currentBalance}💰`;
     }
 
+    function replaceAtEmoji(str, index, replacement) {
+      const arr = Array.from(str);
+      arr[index] = replacement;
+      return arr.join('');
+    }
+
     Telegram.WebApp.ready();
 
     // Сообщаем боту, что игра началась (запрос на инициализацию баланса)
@@ -99,19 +105,16 @@
       let speed = 50;
       let slowdownFactor = 1.08;
       let symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
+
       while (speed < 300) {
-        let current = slotDiv.textContent.split('');
-        current[col] = symbol;
-        slotDiv.textContent = current.join('');
+        slotDiv.textContent = replaceAtEmoji(slotDiv.textContent, col, symbol);
         clickSound.currentTime = 0;
         clickSound.play().catch(() => {});
         symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
         await delay(speed);
         speed *= slowdownFactor;
       }
-      let final = slotDiv.textContent.split('');
-      final[col] = finalSymbol;
-      slotDiv.textContent = final.join('');
+      slotDiv.textContent = replaceAtEmoji(slotDiv.textContent, col, finalSymbol);
     }
 
     function generateResult() {

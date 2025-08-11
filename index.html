@@ -17,7 +17,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     const symbolsList = ["🍒", "🍋", "🍊", "🍉", "⭐", "💎"];
-    let volume = 0.3; // 30% громкость
+    let volume = 0.3;
 
     const clickSound = new Audio("https://actions.google.com/sounds/v1/foley/coin_drop.ogg");
     clickSound.volume = volume;
@@ -30,7 +30,6 @@
 
     async function spin() {
       document.getElementById('message').textContent = "";
-
       let results = generateResult();
 
       for (let col = 0; col < 3; col++) {
@@ -56,11 +55,11 @@
 
     async function spinReel(col, finalSymbol) {
       let slotDiv = document.getElementById('result');
-      let speed = 50; // начальная скорость (мс между кадрами)
-      let slowdownFactor = 1.08; // коэффициент замедления
+      let speed = 50;
+      let slowdownFactor = 1.08;
       let symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
 
-      while (speed < 300) { // пока не замедлилось достаточно
+      while (speed < 300) {
         let current = slotDiv.textContent.split('');
         current[col] = symbol;
         slotDiv.textContent = current.join('');
@@ -70,7 +69,7 @@
 
         symbol = symbolsList[Math.floor(Math.random() * symbolsList.length)];
         await delay(speed);
-        speed *= slowdownFactor; // постепенно замедляем
+        speed *= slowdownFactor;
       }
 
       let final = slotDiv.textContent.split('');
@@ -81,22 +80,16 @@
     function generateResult() {
       let chance = Math.random() * 100;
       let res = [];
-
-      if (chance <= 1) { // 1% — джекпот
+      if (chance <= 1) {
         let sym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
         res = [sym, sym, sym];
-      } else if (chance <= 21) { // 20% — два одинаковых
+      } else if (chance <= 21) {
         let sym1 = symbolsList[Math.floor(Math.random() * symbolsList.length)];
         let sym2;
-        do {
-          sym2 = symbolsList[Math.floor(Math.random() * symbolsList.length)];
-        } while (sym2 === sym1);
-        if (Math.random() < 0.5) {
-          res = [sym1, sym1, sym2];
-        } else {
-          res = [sym1, sym2, sym1];
-        }
-      } else { // остальное — все разные
+        do { sym2 = symbolsList[Math.floor(Math.random() * symbolsList.length)]; } while (sym2 === sym1);
+        if (Math.random() < 0.5) res = [sym1, sym1, sym2];
+        else res = [sym1, sym2, sym1];
+      } else {
         while (res.length < 3) {
           let sym = symbolsList[Math.floor(Math.random() * symbolsList.length)];
           if (!res.includes(sym)) res.push(sym);

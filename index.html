@@ -355,66 +355,32 @@ html, body, #reelArea {
       }
     }
 
-    // NEW: SMOOTHER & LARGER FINAL GLOW that scales with reel scale
+    // RESTORED: SIMPLE STRONG GLOW (stroke + shadowBlur), scales with scaleFactor
     if (r.spinning){
       ctx.save();
       ctx.translate(baseX + reelW/2, baseY);
 
-      // compute scale factor (0..1) based on current visual scale
       const scaleFactor = Math.max(0, Math.min(1, (scale - 1) / (MAX_SCALE_BOOST - 1)));
-
-      // параметры свечения (финальная стадия выше): НЕ зависимы от маленьких лагов размеров
       const baseSize = Math.max(reelW, reelH);
-      const glowBase = baseSize * 0.25; // <-- тут сделал по твоему запросу (больше финал)
-      const glowSteps = 24;             // больше шагов -> ещё плавнее
-      const cornerRadius = 27;          // фиксированная константа, не зависит от размера
-      const color = glowColorCss;
+      const glowBase = baseSize * 0.25; // финальный размер (можно менять)
+      // glowRadius растёт с scaleFactor — плавное увеличение свечения
+      const glowRadius = glowBase * (0.6 + 0.8 * scaleFactor);
 
-      // плавная формула alpha: степень + smoothstep, не завязана на размеры
-      for (let s = glowSteps; s >= 1; s--){
-        const t = s / glowSteps; // 1..0
-        // мягкая кривая прозрачности, затем умножаем на scaleFactor (чтобы свет рос вместе с барабаном)
-        let alpha = 0.88 * Math.pow(t, 1.7) * smoothstep(t);
-        alpha *= Math.pow(scaleFactor, 0.92); // масштабирование свечения по scaleFactor
-
-        // expand не зависит от размеров напрямую (но всё ещё чуть зависит от scaleFactor чтобы появлялся плавно)
-        let expandX = (reelW * 0.15) * (0.25 + 0.75 * scaleFactor) * (1 + (1 - t) * 0.18);
-        let expandY = (reelH * 0.16) * (0.25 + 0.75 * scaleFactor) * (1 + (1 - t) * 0.18);
-
-        // w/h — небольшие при старте, растут с scaleFactor
-        const w = reelW + expandX * (1.0 + (glowSteps - s) * 0.03);
-        const h = reelH + expandY * (1.0 + (glowSteps - s) * 0.03);
-
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
-        ctx.fillStyle = hexOrColorWithAlpha(color, 1.0);
-
-        // Shadow blur зависит от glowBase but also scaled with scaleFactor for smooth growth
-        let shadowBlur = Math.max(0, (glowBase * 0.02) * (1 + (glowSteps - s) * 0.08));
-        shadowBlur *= (0.12 + 0.88 * scaleFactor);
-        ctx.shadowColor = hexOrColorWithAlpha(color, Math.min(0.95, alpha * 0.9));
-        ctx.shadowBlur = shadowBlur;
-
-        // draw rounded rect centered — угол чётко задаётся константой cornerRadius, но плавность внутренней формы
-        const rx = -w/2, ry = -h/2;
-        // rrad — зависит только от cornerRadius и scaleFactor (не от reelW/reelH)
-        const rrad = Math.max(2, cornerRadius * (0.35 + 0.65 * scaleFactor));
-        roundRectPath(ctx, rx, ry, w, h, rrad);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // тонкая окантовка, тоже растёт с scaleFactor
-      ctx.save();
-      ctx.lineJoin = 'miter';
-      ctx.miterLimit = 2;
-      ctx.globalAlpha = 0.08 * (0.25 + 0.75 * scaleFactor);
-      ctx.lineWidth = Math.max(1.2, (reelW * 0.028) * (0.35 + 0.65 * scaleFactor));
-      ctx.strokeStyle = hexOrColorWithAlpha(color, 0.92 * Math.min(1, scaleFactor + 0.12));
-      roundRectPath(ctx, -reelW/2 - 2.5, -reelH/2 - 2.5, reelW + 5, reelH + 5, Math.max(2, cornerRadius * 0.7));
+      // shadow strength / blur
+      ctx.shadowBlur = Math.max(12, glowRadius * 2.0);
+      // более насыщенная тень по цвету
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, Math.min(0.95, 0.75 + 0.25 * scaleFactor));
+      // тонкий stroke, но с большим shadowBlur даст заметное свечение вокруг
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.08);
+      ctx.lineWidth = Math.max(10, glowRadius * 0.85);
+      // используем фиксированный cornerRadius, как просил — большой, "почти квадратный"
+      const cornerRadius = 35;
+      roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, cornerRadius);
       ctx.stroke();
-      ctx.restore();
 
+      // reset shadow
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'transparent';
       ctx.restore();
     }
 
@@ -767,4 +733,3 @@ html, body, #reelArea {
 </script>
 </body>
 </html>
-

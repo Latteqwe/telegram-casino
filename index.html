@@ -141,11 +141,12 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   const TOTAL_SPIN_DURATION = 7000;
   const STRIP_REPEATS = 8;
   const MAX_MOTION_BLUR = 18;
-  const START_SLOW_FRAC = 0.08;
+  // увеличили начальную «медленную» долю, чтобы старт был мягче
+  const START_SLOW_FRAC = 0.22; 
   const MAX_SCALE_BOOST = 1.24;
   const SCALE_EASE = 0.16;
 
-  // ----- DOM + аудио -----
+  // ----- DOM и звуки -----
   const reelArea = document.getElementById('reelArea');
   const canvas = document.getElementById('reelsCanvas');
   const ctx = canvas.getContext('2d', { alpha: true });
@@ -175,7 +176,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
   // ----- layout -----
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let W=0,H=0,reelW=0,reelH=0,reelX=[];
-  const PAD = 56; // margin so glow not clipped
+  const PAD = 56; // margin чтобы glow не обрезался
 
   function computeLayout(){
     const rect = reelArea.getBoundingClientRect();
@@ -256,6 +257,11 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''; }
 
+  // easing: easeInOutCubic (медленный старт, ускорение, плавная остановка)
+  function easeInOutCubic(t){
+    return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+  }
+
   // ----- draw -----
   function draw(){
     ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
@@ -270,14 +276,15 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       const r = reels[ri];
       const x = offsetX + reelX[ri];
 
-      // update spin offset
+      // update spin
       if (r.spinning){
         const now = performance.now();
         let tRaw = (now - r.startTime) / Math.max(1, r.duration);
         tRaw = Math.max(0, Math.min(1, tRaw));
         const delay = START_SLOW_FRAC;
         let tAdj = tRaw < delay ? 0 : (tRaw - delay) / (1 - delay);
-        const eased = 1 - Math.pow(1 - tAdj, 3);
+        // use easeInOutCubic so start is soft
+        const eased = easeInOutCubic(tAdj);
         r.offset = r.startOffset + (r.targetOffset - r.startOffset) * eased;
         if (tRaw >= 1 && !r.onCompleteCalled){
           r.spinning = false; r.onCompleteCalled = true;
@@ -300,43 +307,37 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
         motionBlur = (1 - phase) * MAX_MOTION_BLUR;
       }
 
-      // --- DRAW GLOW as blurred radial gradient behind reel ---
-      // glow intensity follows visualScale
-      const glowStrength = Math.max(0.08, (r.visualScale - 1) / (MAX_SCALE_BOOST - 1)); // 0..1-ish
-      const glowRadius = Math.max(reelW, reelH) * (1.4 + glowStrength * 1.4);
+      // --- DRAW GLOW as softened radial gradient behind reel (уменьшили силу) ---
+      const glowStrength = Math.max(0.02, (r.visualScale - 1) / (MAX_SCALE_BOOST - 1));
+      const glowRadius = Math.max(reelW, reelH) * (1.2 + glowStrength * 1.0); // чуть поменьше
       const gx = x + reelW/2;
       const gy = centerY;
-      // radial gradient centered behind reel, large radius -> soft blur-like glow
-      const g = ctx.createRadialGradient(gx, gy, reelW*0.15, gx, gy, glowRadius);
-      // color with alpha influenced by glowStrength
-      const baseColor = glowColorCss.replace(/rgba?\(|\)|\s/g,'');
-      // if cssVar returned "rgba(...)" keep it; fallback to default handled by CSS
-      // we simply use glowColorCss and control alpha via stop alphas
-      g.addColorStop(0, hexOrColorWithAlpha(glowColorCss, 0.55 * (0.5 + glowStrength)));
-      g.addColorStop(0.35, hexOrColorWithAlpha(glowColorCss, 0.28 * (0.8 + glowStrength)));
+      const g = ctx.createRadialGradient(gx, gy, reelW*0.12, gx, gy, glowRadius);
+      g.addColorStop(0, hexOrColorWithAlpha(glowColorCss, 0.35 * (0.4 + glowStrength)));  // уменьшили альфу
+      g.addColorStop(0.35, hexOrColorWithAlpha(glowColorCss, 0.18 * (0.6 + glowStrength)));
       g.addColorStop(1, hexOrColorWithAlpha(glowColorCss, 0.0));
       ctx.save();
-      ctx.globalCompositeOperation = 'destination-over'; // draw behind existing content
+      ctx.globalCompositeOperation = 'destination-over';
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(gx, gy, glowRadius, 0, Math.PI*2);
       ctx.fill();
       ctx.restore();
 
-      // --- draw reel interior (clip EXACT reel rect so symbols never protrude) ---
+      // clip EXACT reel rect (строго) — теперь символы не будут выглядывать
       const innerY = centerY - reelH/2;
       ctx.save();
       roundRectPath(ctx, x, innerY, reelW, reelH, 12);
       ctx.clip();
 
-      // fill interior with page gradient so no visible rectangle
+      // fill interior with background gradient
       const bgGrad = ctx.createLinearGradient(0, innerY, 0, innerY + reelH);
       bgGrad.addColorStop(0, cssVar('--bg-a') || '#031024');
       bgGrad.addColorStop(1, cssVar('--bg-b') || '#061c36');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(x, innerY, reelW, reelH);
 
-      // draw symbols (clipped, so no overflow)
+      // draw symbols (clipped)
       const startSi = Math.floor(-r.offset / symbolH) - 4;
       const drawCount = 14;
       for (let si = startSi; si < startSi + drawCount; si++){
@@ -396,18 +397,14 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     requestAnimationFrame(draw);
   }
 
-  // helper to ensure we can apply proper alpha to rgba or hex color
+  // helper to apply alpha
   function hexOrColorWithAlpha(c, a){
-    // if already rgba(...) or rgb(...), replace or append alpha
     if (/rgba?\(/.test(c)) {
-      // extract rgb inside parentheses
       const inside = c.replace(/^rgba?\(|\)|\s/g,'').split(',');
       if (inside.length >= 3){
         return `rgba(${inside[0]},${inside[1]},${inside[2]},${a.toFixed(3)})`;
       }
     }
-    // fallback: try to use color as-is with global alpha via rgba( ) if hex
-    // basic hex parser (#rrggbb)
     if (/^#([0-9a-f]{3}|[0-9a-f]{6})/i.test(c)){
       let hex = c.replace('#','');
       if (hex.length === 3) hex = hex.split('').map(h=>h+h).join('');
@@ -416,14 +413,13 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       const b = parseInt(hex.substring(4,6),16);
       return `rgba(${r},${g},${b},${a.toFixed(3)})`;
     }
-    // last resort - return rgba of default with alpha
     return `rgba(140,170,223,${a.toFixed(3)})`;
   }
 
   function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function roundRectStroke(ctx,x,y,w,h,r){ roundRectPath(ctx,x,y,w,h,r); ctx.stroke(); }
 
-  // ----- probabilities -----
+  // ----- вероятности -----
   function generateResult(){
     const chance = Math.random()*100;
     if (chance < 1.5){
@@ -444,9 +440,9 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     }
   }
 
-  // ----- spin orchestration (7s total, sequential) -----
+  // ----- spin orchestration -----
   let spinningFlag = false, autoSpin=false, autoSpinTimer=null;
-  const SETTINGS_KEY = 'rc_settings_glowrad_v1';
+  const SETTINGS_KEY = 'rc_settings_radial_v2';
   let settings = { theme:'dark', musicEnabled:false, musicVolume:0.28, soundsEnabled:true, vibrationEnabled:true, autoSpin:false };
 
   async function doSpin(){
@@ -526,7 +522,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
     }
   }
 
-  // ----- settings / ui -----
+  // ----- settings/UI (как было) -----
   function loadSettings(){
     try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) settings = Object.assign(settings, JSON.parse(raw)); } catch(e){}
     applySettingsToUI(); applySettingsEffect();
@@ -559,7 +555,7 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
       document.documentElement.style.setProperty('--panel-bg', 'rgba(255,255,255,0.96)');
       document.documentElement.style.setProperty('--btn-a', '#f3cfa8');
       document.documentElement.style.setProperty('--btn-b', '#d1a27a');
-      document.documentElement.style.setProperty('--glow-color', 'rgba(200,170,130,0.56)'); // бежевое
+      document.documentElement.style.setProperty('--glow-color', 'rgba(200,170,130,0.56)');
       document.documentElement.style.setProperty('--win-a', 'rgba(255,230,200,0.98)');
       document.documentElement.style.setProperty('--win-b', 'rgba(255,245,240,0.96)');
       document.documentElement.style.setProperty('--modal-a', '#ffffff');
@@ -635,8 +631,8 @@ h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;ga
 
   function updateBreathing(){ if (!spinningFlag && !spinBtn.disabled) spinBtn.classList.add('breathing'); else spinBtn.classList.remove('breathing'); }
 
-  // ----- balance -----
-  const BAL_KEY = 'rc_balance_radial_v1';
+  // ----- баланс -----
+  const BAL_KEY = 'rc_balance_radial_v2';
   let currentBalance = parseInt(localStorage.getItem(BAL_KEY)) || 1000;
   document.getElementById('balValue').textContent = currentBalance;
   function saveBalance(){ localStorage.setItem(BAL_KEY, String(currentBalance)); }

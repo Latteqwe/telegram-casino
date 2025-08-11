@@ -35,11 +35,12 @@
     box-shadow: 0 8px 22px rgba(10,30,50,0.6);
     transition: box-shadow 180ms ease, transform 120ms ease;
   }
+  /* juicy button glow */
   #spinBtn:hover, #spinBtn:focus {
-    box-shadow: 0 18px 44px rgba(20,60,100,0.32), 0 0 22px rgba(140,170,223,0.26);
+    box-shadow: 0 20px 48px rgba(20,60,100,0.30), 0 0 32px rgba(140,170,223,0.28);
     transform: translateY(-2px);
   }
-  #spinBtn:active { transform: translateY(0); box-shadow: 0 10px 26px rgba(20,60,100,0.28), 0 0 12px rgba(140,170,223,0.18); }
+  #spinBtn:active { transform: translateY(0); box-shadow: 0 12px 30px rgba(20,60,100,0.28), 0 0 18px rgba(140,170,223,0.20); }
   #spinBtn:disabled{opacity:0.6;cursor:not-allowed}
   .muted{opacity:0.85;font-size:14px;color:#bfd9ff}
 
@@ -48,7 +49,6 @@
   .stake-row input[type="number"] {
     width:100px; padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.03); color:var(--text);
   }
-
 </style>
 </head>
 <body>
@@ -70,7 +70,7 @@
 
       <div class="controls" style="margin-top:14px;">
         <div class="stake-row">
-          <label style="font-weight:700;">Ставка:</label>
+          <label style="font-weight:700;color:var(--text)">Ставка:</label>
           <input id="stakeInput" type="number" min="10" step="10" value="100" />
         </div>
         <button id="spinBtn">КРУТИ!</button>
@@ -87,17 +87,20 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 (function(){
-  // ---------- config ----------
+  // CONFIG
   const REEL_COUNT = 3;
   const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
-  const TOTAL_SPIN_DURATION = 7000; // ms total for all 3 reels sequentially
+  const TOTAL_SPIN_DURATION = 7000; // ms total sequential
   const STRIP_REPEATS = 8;
-  const MAX_MOTION_BLUR = 18; // smear magnitude
-  const START_DELAY_FRACTION = 0.06; // small delay at start of animation to make start slower
+  const MAX_MOTION_BLUR = 18;
+  const START_SLOW_FRAC = 0.06; // start slower fraction
+  const MAX_SCALE_BOOST = 1.10; // how much reel increases when active (10%)
+  const SCALE_EASE = 0.16; // per-frame lerp speed for visual scale
 
-  // ---------- dom ----------
+  // DOM
   const reelArea = document.getElementById('reelArea');
-  const reelsCanvas = document.getElementById('reelsCanvas');
+  const canvas = document.getElementById('reelsCanvas');
+  const ctx = canvas.getContext('2d');
   const spinBtn = document.getElementById('spinBtn');
   const messageEl = document.getElementById('message');
   const balValueEl = document.getElementById('balValue');
@@ -108,11 +111,9 @@
   const jackpotSound = document.getElementById('jackpotSound');
   try { clickSound.volume=0.28; winSound.volume=0.55; loseSound.volume=0.4; jackpotSound.volume=0.75; } catch(e){}
 
-  // canvas size
-  const ctx = reelsCanvas.getContext('2d');
+  // sizing
   let dpr = Math.max(1, window.devicePixelRatio || 1);
-  let W = 0, H = 0, reelW = 0, reelH = 0, reelX = [];
-
+  let W=0,H=0,reelW=0,reelH=0,reelX=[];
   function computeLayout(){
     const rect = reelArea.getBoundingClientRect();
     W = Math.max(320, rect.width);
@@ -125,18 +126,17 @@
     reelX = [];
     for (let i=0;i<REEL_COUNT;i++) reelX.push(Math.round(startX + i*(reelW + gap)));
   }
-
   function resize(){
     computeLayout();
-    reelsCanvas.width = Math.round(W * dpr);
-    reelsCanvas.height = Math.round(H * dpr);
-    reelsCanvas.style.width = W + 'px';
-    reelsCanvas.style.height = H + 'px';
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
   window.addEventListener('resize', resize);
 
-  // ---------- preload images ----------
+  // preload images
   const SYMBOLS = [];
   for (let i=0;i<SYMBOL_FILES.length;i++){
     const img = new Image();
@@ -144,7 +144,7 @@
     SYMBOLS.push({ img, name: SYMBOL_FILES[i].split('/').pop().split('.')[0] });
   }
 
-  // ---------- reel model ----------
+  // Reel model
   class Reel {
     constructor(i){
       this.i = i;
@@ -153,23 +153,24 @@
       for (let r=0; r<STRIP_REPEATS; r++){
         for (let s=0;s<SYMBOLS.length;s++) base.push(s);
       }
+      // shuffle
       for (let k=0;k<base.length;k++){
         const j = Math.floor(Math.random()*base.length);
         const tmp = base[k]; base[k]=base[j]; base[j]=tmp;
       }
       this.strip = base;
-      this.offset = 0; // px
+      this.offset = 0;
       this.startOffset = 0;
       this.targetOffset = 0;
       this.startTime = 0;
       this.duration = 0;
       this.spinning = false;
       this.onComplete = null;
+      this.visualScale = 1.0; // animated visual scale (smooth)
     }
     start(finalSymbolIndex, duration){
       const symbolH = Math.round(reelH * 0.86);
       const rotations = 3 + Math.floor(Math.random()*2);
-      // find occurrence of final symbol near end of strip
       let found = -1;
       for (let k = this.strip.length - 1; k >= 0; k--){
         if (this.strip[k] === finalSymbolIndex) { found = k; break; }
@@ -184,11 +185,10 @@
       this.onCompleteCalled = false;
     }
   }
-
   const reels = [];
   for (let i=0;i<REEL_COUNT;i++) reels.push(new Reel(i));
 
-  // ---------- drawing (only motion blur, no base blur) ----------
+  // draw loop
   function draw(){
     ctx.clearRect(0,0,W,H);
     const symbolH = Math.round(reelH * 0.86);
@@ -198,18 +198,17 @@
       const r = reels[ri];
       const x = reelX[ri];
 
-      // update offset if spinning (but we prefer to update in spin orchestration loop for precise timing)
+      // update spin-driven offset
       if (r.spinning){
         const now = performance.now();
-        // normalized time t in [0..1]
         let tRaw = (now - r.startTime) / Math.max(1, r.duration);
         tRaw = Math.max(0, Math.min(1, tRaw));
-        // apply small start delay fraction so start is slightly slower
-        const delay = START_DELAY_FRACTION;
-        let tAdjusted;
-        if (tRaw < delay) tAdjusted = 0;
-        else tAdjusted = (tRaw - delay) / (1 - delay);
-        const eased = 1 - Math.pow(1 - tAdjusted, 3); // easeOutCubic on adjusted t
+        // apply small start-slow fraction so initial acceleration is gentler
+        const delay = START_SLOW_FRAC;
+        let tAdj = tRaw;
+        if (tRaw < delay) tAdj = 0;
+        else tAdj = (tRaw - delay) / (1 - delay);
+        const eased = 1 - Math.pow(1 - tAdj, 3); // easeOutCubic on adjusted
         r.offset = r.startOffset + (r.targetOffset - r.startOffset) * eased;
         if (tRaw >= 1 && !r.onCompleteCalled){
           r.spinning = false;
@@ -221,7 +220,11 @@
         }
       }
 
-      // compute motion blur magnitude for this reel based on how fast it's moving now
+      // visual scale smoothing: target depends on spinning
+      const targetScale = r.spinning ? MAX_SCALE_BOOST : 1.0;
+      r.visualScale += (targetScale - r.visualScale) * SCALE_EASE; // simple smooth lerp
+
+      // motion blur magnitude based on spinning progress (only smear)
       let motionBlur = 0;
       if (r.spinning){
         const now = performance.now();
@@ -230,18 +233,19 @@
         motionBlur = (1 - phase) * MAX_MOTION_BLUR;
       }
 
-      const isActive = r.spinning;
-      // draw glow (shadow) if active
-      if (isActive){
+      // draw juicy glow behind active reel (soft and similar to button)
+      if (r.visualScale > 1.005){
         ctx.save();
-        ctx.fillStyle = 'rgba(140,170,223,0.06)';
-        ctx.shadowColor = 'rgba(140,170,223,0.30)';
-        ctx.shadowBlur = 28;
-        const gx = x - 6;
-        const gy = (H - reelH)/2 - 6;
-        const gw = reelW + 12;
-        const gh = reelH + 12;
-        roundRectPath(ctx, gx, gy, gw, gh, 16);
+        const glowAlpha = Math.min(0.42, (r.visualScale - 1) / (MAX_SCALE_BOOST - 1) * 0.42);
+        ctx.shadowColor = 'rgba(140,170,223,0.40)';
+        ctx.shadowBlur = 36;
+        ctx.fillStyle = `rgba(140,170,223,${0.08})`;
+        const gx = x - 8;
+        const gy = (H - reelH)/2 - 8;
+        const gw = reelW + 16;
+        const gh = reelH + 16;
+        roundRectPath(ctx, gx, gy, gw, gh, 18);
+        ctx.globalAlpha = glowAlpha;
         ctx.fill();
         ctx.restore();
       }
@@ -251,7 +255,7 @@
       roundRectPath(ctx, x, (H - reelH)/2, reelW, reelH, 12);
       ctx.clip();
 
-      // draw symbols around center
+      // draw symbols area
       const startSi = Math.floor(-r.offset / symbolH) - 3;
       const drawCount = 12;
       for (let si = startSi; si < startSi + drawCount; si++){
@@ -267,9 +271,9 @@
         const dist = Math.abs(yCenter - centerY);
         const maxDist = reelH * 0.9;
         const progress = Math.max(0, 1 - dist / maxDist);
-        const scaleBoost = isActive ? 1.06 : 1.0; // slight enlarge when active
-        const scale = (0.72 + 0.28 * progress) * scaleBoost;
-        const brightness = 0.95 + 0.05 * progress;
+        const baseScale = 0.72 + 0.28 * progress;
+        const scale = baseScale * r.visualScale; // apply smooth visual scale
+        const brightness = 0.96 + 0.04 * progress;
         const alpha = 0.6 + 0.4 * progress;
 
         const drawW = reelW * 0.78 * scale;
@@ -277,7 +281,7 @@
         const drawX = x + (reelW - drawW)/2;
         const drawY = yCenter - drawH/2;
 
-        // motion blur: vertical smear samples (only this)
+        // motion blur (vertical smear) only
         if (motionBlur > 0.6){
           const samples = Math.min(6, Math.max(3, Math.round(motionBlur / 3)));
           for (let s = 0; s < samples; s++){
@@ -299,32 +303,33 @@
         }
       }
 
+      // restore and frame
       ctx.restore();
-
-      // subtle frame
       ctx.save();
       ctx.strokeStyle = 'rgba(255,255,255,0.03)';
       ctx.lineWidth = 1;
       roundRectStroke(ctx, x, (H - reelH)/2, reelW, reelH, 12);
       ctx.restore();
-    } // end reels
+    }
+
     requestAnimationFrame(draw);
   }
 
   function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function roundRectStroke(ctx,x,y,w,h,r){ roundRectPath(ctx,x,y,w,h,r); ctx.stroke(); }
 
-  // ---------- generate result (increased win chances) ----------
+  // probability: jackpot 1%, pair 20%, else distinct
   function generateResult(){
     const chance = Math.random()*100;
-    if (chance <= 3){ // 3% jackpot (triple)
-      const s = Math.floor(Math.random()*SYMBOLS.length); return [s,s,s];
-    } else if (chance <= 43){ // 40% pair (one pair)
+    if (chance <= 1){
+      const s = Math.floor(Math.random()*SYMBOLS.length);
+      return [s,s,s];
+    } else if (chance <= 21){
       const s1 = Math.floor(Math.random()*SYMBOLS.length);
       let s2;
       do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1);
       if (Math.random() < 0.5) return [s1,s1,s2]; else return [s1,s2,s1];
-    } else { // distinct
+    } else {
       const arr = [];
       while (arr.length < 3){
         const s = Math.floor(Math.random()*SYMBOLS.length);
@@ -336,16 +341,14 @@
 
   function normalizeOffset(offset, totalH){ let v = offset % totalH; if (v > 0) v -= totalH; return v; }
 
-  // ---------- spin flow (sequential total 7000ms) ----------
+  // sequential spin orchestration
   let spinningFlag = false;
   async function doSpin(){
     if (spinningFlag) return;
     const stake = Math.max(10, Math.floor(Number(stakeInput.value) || 100));
-    if (stake <= 0){ setMessage('Поставь корректную ставку', 2000); return; }
-    if (currentBalance < stake){ setMessage('Недостаточно средств!', 2000); return; }
-    // update stake visually (in case user typed)
+    if (stake <= 0){ setMessage('Поставь корректную ставку',2000); return; }
+    if (currentBalance < stake){ setMessage('Недостаточно средств!',2000); return; }
     stakeInput.value = stake;
-
     spinningFlag = true;
     spinBtn.disabled = true;
     setMessage('');
@@ -355,20 +358,20 @@
 
     const finals = generateResult();
 
+    // notify telegram
     if (window.Telegram && Telegram.WebApp){
       try{ Telegram.WebApp.sendData(JSON.stringify({ action:'start_game' })); }catch(e){}
     }
 
-    // distribute total duration sequentially evenly
-    const baseDuration = Math.floor(TOTAL_SPIN_DURATION / REEL_COUNT);
-    const durations = [baseDuration, baseDuration, TOTAL_SPIN_DURATION - baseDuration*2]; // sum = TOTAL_SPIN_DURATION
+    // split total duration across reels sequentially
+    const baseDur = Math.floor(TOTAL_SPIN_DURATION / REEL_COUNT);
+    const durations = [baseDur, baseDur, TOTAL_SPIN_DURATION - baseDur*2];
 
-    // spin reels one by one
     for (let i=0;i<REEL_COUNT;i++){
       const r = reels[i];
       const dur = durations[i];
       r.start(finals[i], dur);
-      // wait for completion
+      // wait completion
       await new Promise(resolve => {
         r.onComplete = () => {
           try{ clickSound.currentTime = 0; clickSound.play().catch(()=>{}); }catch(e){}
@@ -379,7 +382,7 @@
       await new Promise(res => setTimeout(res, 120));
     }
 
-    // compute final visible names
+    // compute final names
     const names = reels.map(r => {
       const symbolH = Math.round(reelH * 0.86);
       const centerIndexFloat = - Math.round(r.offset / symbolH);
@@ -387,7 +390,7 @@
       return SYMBOLS[r.strip[idx]].name;
     });
 
-    // payout multipliers relative to stake
+    // payouts: pair x2, big triple x8, gem triple jackpot x10 (multiplied by stake)
     let change = 0, msg = '';
     const allEqual = names.every(v => v === names[0]);
     const anyPair = (names[0] === names[1]) || (names[1] === names[2]) || (names[0] === names[2]);
@@ -397,46 +400,40 @@
     } else if (anyPair){ change = stake * 2; msg = '😉 Почти — мелкий выигрыш'; playSafe(winSound); }
     else { change = 0; msg = '🙁 Увы — попробуй ещё'; playSafe(loseSound); }
 
-    if (change > 0) {
-      // smooth gradient transition on win
-      smoothWinGradient();
-    }
-
+    if (change > 0) smoothWinGradient();
     currentBalance += change;
     balValueEl.textContent = currentBalance;
     saveBalance();
-    setMessage(msg, 2400);
+    setMessage(msg,2400);
 
     if (window.Telegram && Telegram.WebApp){
-      try { Telegram.WebApp.sendData(JSON.stringify({ action:'slot_result', result: names.join(','), change: (change - stake) })); } catch(e){}
+      try{ Telegram.WebApp.sendData(JSON.stringify({ action:'slot_result', result: names.join(','), change: (change - stake) })); }catch(e){}
     }
 
     spinningFlag = false;
     spinBtn.disabled = false;
   }
 
-  // ---------- smooth gradient change for win ----------
+  // smooth gradient on win
   function smoothWinGradient(){
     const orig = document.body.style.background || 'linear-gradient(180deg,var(--bg-a),var(--bg-b))';
     document.body.style.transition = 'background 1200ms ease-in-out';
     document.body.style.background = 'linear-gradient(180deg, rgba(28,60,100,0.98), rgba(6,20,34,0.96))';
     setTimeout(()=> {
       document.body.style.background = orig;
-      // allow transition to complete then remove inline transition
       setTimeout(()=> { document.body.style.transition = ''; }, 1400);
     }, 1400);
   }
 
-  // ---------- helpers ----------
+  // helpers
   function playSafe(audio){ try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){} }
   function setMessage(text, timeout=2200){ messageEl.textContent = text; if (timeout>0) setTimeout(()=> messageEl.textContent='Готово — нажми SPIN', timeout); }
   function saveBalance(){ localStorage.setItem('rc_balance', String(currentBalance)); }
 
-  // ---------- balance init ----------
+  // init
   let currentBalance = parseInt(localStorage.getItem('rc_balance')) || 1000;
   balValueEl.textContent = currentBalance;
 
-  // ---------- init ----------
   resize();
   requestAnimationFrame(draw);
 
@@ -449,7 +446,7 @@
     try{ Telegram.WebApp.ready(); Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" })); }catch(e){}
   }
 
-  // expose for debug
+  // debug
   window._rc = { reels, SYMBOLS };
 
 })();

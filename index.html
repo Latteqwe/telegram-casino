@@ -159,9 +159,9 @@ html, body, #reelArea {
   const TOTAL_SPIN_DURATION = 7000; // ms (всего)
   const STRIP_REPEATS = 8;
   const MAX_MOTION_BLUR = 18;
-  const BLUR_RAMP_START_MS = 300; // <-- changed to 300ms
+  const BLUR_RAMP_START_MS = 300; // <-- 300ms
   const BLUR_RAMP_END_MS = 1000;
-  const START_SLOW_FRAC = 0.15;   // <-- changed to 0.15
+  const START_SLOW_FRAC = 0.15;   // <-- 0.15
   const MAX_SCALE_BOOST = 1.28;
   const SCALE_EASE = 0.16;
 
@@ -357,7 +357,7 @@ html, body, #reelArea {
 
     // DRAW RADIAL GLOW (fades to edges) — draw before reel so reel is on top
     if (r.spinning){
-      // reduced glow radius & less rounded corner for glow stroke as requested
+      // reduced glow radius & almost-square corners for glow stroke as requested
       const glowStrength = Math.max(0.02, (scale - 1) / (MAX_SCALE_BOOST - 1));
       const baseSize = Math.max(reelW, reelH);
       // smaller base multiplier -> less radius
@@ -380,14 +380,19 @@ html, body, #reelArea {
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
 
-      // subtle rim stroke with smaller corner radius (8) so corners look less rounded
+      // subtle rim stroke with very small corner radius (almost square)
+      // set miter join so corners are sharper
+      ctx.save();
+      ctx.lineJoin = 'miter';
+      ctx.miterLimit = 2;
       ctx.shadowBlur = Math.max(6, glowRadius * 0.18);
       ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, 0.9);
       ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.05);
       ctx.lineWidth = Math.max(6, glowRadius * 0.12);
-      // <- corner radius for the glow stroke reduced from 12 to 8
-      roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 8);
+      // <- corner radius for the glow stroke reduced to 2 (almost square)
+      roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, 2);
       ctx.stroke();
+      ctx.restore();
 
       ctx.shadowBlur = 0;
       ctx.shadowColor = 'transparent';

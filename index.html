@@ -364,7 +364,7 @@ html, body, #reelArea {
       const baseSize = Math.max(reelW, reelH);
       const glowBase = baseSize * 0.25; // финальный размер (можно менять)
       // glowRadius растёт с scaleFactor — плавное увеличение свечения
-      const glowRadius = glowBase * (1 + 1.2 * scaleFactor);
+      const glowRadius = glowBase * (0.6 + 0.8 * scaleFactor);
 
       // shadow strength / blur
       ctx.shadowBlur = Math.max(12, glowRadius * 6.0);
@@ -733,6 +733,7 @@ html, body, #reelArea {
 </script>
 </body>
 </html>
+
 
 
 

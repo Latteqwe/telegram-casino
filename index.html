@@ -13,9 +13,9 @@
     --text: #cfe8ff;
     --panel: rgba(3,16,28,0.52);
   }
-  html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text);}
-  body{display:flex;flex-direction:column;align-items:center;padding:18px 12px;box-sizing:border-box;}
-  header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px;}
+  html,body{height:100%;margin:0;font-family:"Montserrat",Arial,sans-serif;background:linear-gradient(180deg,var(--bg-a),var(--bg-b));color:var(--text)}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 12px;box-sizing:border-box}
+  header{width:100%;max-width:960px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:18px}
   #logo{width:48px}
   h1{font-size:20px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:12px}
   .stage{width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center;gap:18px}
@@ -23,16 +23,18 @@
   .top-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px}
   #balance{padding:10px 16px;border-radius:10px;background:var(--panel);font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,0.5)}
   #message{flex:1;margin-left:12px;text-align:center;font-weight:600;min-height:22px;color:var(--text)}
-  .reel-wrap{position:relative;display:flex;gap:16px;align-items:center;justify-content:center;padding:18px}
-  /* main canvas covers reels draw */
-  #reelsCanvas{width:100%;height:240px;display:block;border-radius:12px;z-index:2}
-  /* particle canvas on top of reels (pointer-events none) */
-  #sparksCanvas{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:3}
+  /* reel area fixed height so layout won't grow uncontrollably */
+  .reel-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:18px; width:100%; max-width:960px; box-sizing:border-box;}
+  /* fixed height, responsive: desktop ~260px, mobile ~200px */
+  .reel-wrap { height: 260px; }
+  @media (max-width:520px){ .reel-wrap { height: 200px; } #logo{width:38px} h1{font-size:16px} }
+  /* canvases fill the reel-wrap */
+  #reelsCanvas { width:100%; height:100%; display:block; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02)); }
+  #sparksCanvas { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:5; }
   .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px}
   #spinBtn{padding:12px 26px;font-weight:800;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(180deg,#91b7e7,#2b5f91);color:#031028;box-shadow:0 8px 22px rgba(10,30,50,0.6)}
   #spinBtn:disabled{opacity:0.6;cursor:not-allowed}
   .muted{opacity:0.85;font-size:14px;color:#bfd9ff}
-  @media (max-width:520px){#logo{width:38px} h1{font-size:16px} #reelsCanvas{height:180px}}
 </style>
 </head>
 <body>
@@ -68,21 +70,21 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 (function(){
-  // ---------- CONFIG ----------
+  // ---------- config ----------
   const REEL_COUNT = 3;
   const SYMBOL_FILES = ['banana.png','star.png','gem.png','cherry.png','bell.png','lemon.png'].map(f => 'images/' + f);
   const STAKE = 100;
-  const BASE_SPIN_DURATION = 1500; // ms (motion blur full duration)
-  const STAGGER = 260;           // ms delay between reel stops (sequential feel)
-  const MAX_MOTION_BLUR = 10;    // px max motion blur intensity at start
-  const CHANGE_INTERVAL = 80;    // ms symbol tick frequency for particle emission
-  const SYMBOL_SCALE_FAR = 0.72; // far scale
-  const SYMBOL_SCALE_NEAR = 1.0; // center scale
+  const MOTION_BLUR_MS = 1500; // motion blur full duration (1.5s)
+  const BASE_SPIN_DURATION = 1500; // base spin time
+  const STAGGER = 280; // progressive extra duration per reel
+  const MAX_MOTION_BLUR = 14; // px at the start
+  const STRIP_REPEATS = 8; // how many repeats to build strip
+  const EASE = t => 1 - Math.pow(1 - t, 3); // easeOutCubic
 
-  // ---------- DOM ----------
+  // ---------- dom ----------
+  const reelArea = document.getElementById('reelArea');
   const reelsCanvas = document.getElementById('reelsCanvas');
   const sparksCanvas = document.getElementById('sparksCanvas');
-  const reelArea = document.getElementById('reelArea');
   const spinBtn = document.getElementById('spinBtn');
   const messageEl = document.getElementById('message');
   const balValueEl = document.getElementById('balValue');
@@ -90,75 +92,121 @@
   const winSound = document.getElementById('winSound');
   const loseSound = document.getElementById('loseSound');
   const jackpotSound = document.getElementById('jackpotSound');
-  try{ clickSound.volume=0.28; winSound.volume=0.55; loseSound.volume=0.4; jackpotSound.volume=0.75 }catch(e){}
+  try { clickSound.volume=0.28; winSound.volume=0.55; loseSound.volume=0.4; jackpotSound.volume=0.75; } catch(e){}
 
-  // ---------- Canvas sizing ----------
-  let dpr = Math.max(1, window.devicePixelRatio || 1);
-  function resizeCanvases(){
-    const rect = reelArea.getBoundingClientRect();
-    // reels canvas
-    reelsCanvas.width = Math.round(rect.width * dpr);
-    reelsCanvas.height = Math.round((rect.height) * dpr);
-    reelsCanvas.style.width = rect.width + 'px';
-    reelsCanvas.style.height = rect.height + 'px';
-    // sparks canvas overlay
-    sparksCanvas.width = Math.round(rect.width * dpr);
-    sparksCanvas.height = Math.round((rect.height) * dpr);
-    sparksCanvas.style.width = rect.width + 'px';
-    sparksCanvas.style.height = rect.height + 'px';
-    reelsCtx.setTransform(dpr,0,0,dpr,0,0);
-    sparksCtx.setTransform(dpr,0,0,dpr,0,0);
-    // recompute geometry
-    computeLayout();
-  }
-  window.addEventListener('resize', resizeCanvases);
-
-  // ---------- Contexts ----------
+  // ---------- canvas contexts & size ----------
   const reelsCtx = reelsCanvas.getContext('2d');
   const sparksCtx = sparksCanvas.getContext('2d');
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  let W = 0, H = 0, reelW = 0, reelH = 0, reelX = [];
 
-  // ---------- Layout ----------
-  let width=0, height=0, reelW=0, reelH=0, reelX = [];
   function computeLayout(){
     const rect = reelArea.getBoundingClientRect();
-    width = rect.width;
-    height = rect.height;
-    // choose reel size based on available width (3 reels + gaps)
-    const gap = Math.min(28, width*0.02);
-    reelW = Math.min(180, Math.max(72, (width - gap*2) / 3));
-    reelH = Math.min(220, Math.max(72, Math.round(reelW * 1)));
-    // center vertically in available canvasheight
-    const totalReelWidth = reelW*REEL_COUNT + gap*(REEL_COUNT-1);
-    const startX = (width - totalReelWidth)/2;
+    W = Math.max(320, rect.width);
+    H = Math.max(120, rect.height);
+    // reel width: 3 slots + gaps (use 16px gaps)
+    const gap = Math.min(28, W * 0.02);
+    reelW = Math.min(220, Math.max(84, Math.floor((W - gap*2) / 3)));
+    reelH = Math.min(H * 0.96, reelW * 1.08, 280); // keep reelH relative to available height
+    // center horizontally
+    const total = reelW * REEL_COUNT + gap * (REEL_COUNT - 1);
+    const startX = (W - total) / 2;
     reelX = [];
-    for (let i=0;i<REEL_COUNT;i++) reelX.push(startX + i*(reelW + gap));
+    for (let i=0;i<REEL_COUNT;i++) reelX.push(Math.round(startX + i*(reelW + gap)));
   }
 
-  // initial compute (after DOM ready)
-  computeLayout();
+  function resizeCanvases(){
+    computeLayout();
+    reelsCanvas.width = Math.round(W * dpr);
+    reelsCanvas.height = Math.round(H * dpr);
+    reelsCanvas.style.width = W + 'px';
+    reelsCanvas.style.height = H + 'px';
+    reelsCtx.setTransform(dpr,0,0,dpr,0,0);
 
-  // ---------- Symbols preload ----------
-  const SYMBOLS = SYMBOL_FILES.map(src => {
-    const img = new Image();
-    img.src = src;
-    return {src, img, name: src.split('/').pop().split('.')[0]};
+    sparksCanvas.width = Math.round(W * dpr);
+    sparksCanvas.height = Math.round(H * dpr);
+    sparksCanvas.style.width = W + 'px';
+    sparksCanvas.style.height = H + 'px';
+    sparksCtx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  window.addEventListener('resize', () => {
+    resizeCanvases();
   });
 
-  // ---------- Particles ----------
+  // ---------- preload symbols ----------
+  const SYMBOLS = [];
+  let loadedCount = 0;
+  for (let i=0;i<SYMBOL_FILES.length;i++){
+    const img = new Image();
+    img.src = SYMBOL_FILES[i];
+    img.onload = ()=> { loadedCount++; };
+    SYMBOLS.push({img: img, name: SYMBOL_FILES[i].split('/').pop().split('.')[0]});
+  }
+
+  // ---------- Reels model ----------
+  class Reel {
+    constructor(i){
+      this.i = i;
+      this.strip = []; // fixed length strip of indices
+      const base = [];
+      for (let r=0; r<STRIP_REPEATS; r++){
+        for (let s=0;s<SYMBOLS.length;s++) base.push(s);
+      }
+      // shuffle a bit for variety
+      for (let k=0;k<base.length;k++){
+        const j = Math.floor(Math.random()*base.length);
+        const tmp = base[k]; base[k]=base[j]; base[j]=tmp;
+      }
+      this.strip = base; // fixed size, no concat later
+      this.offset = 0; // px
+      this.startOffset = 0;
+      this.targetOffset = 0;
+      this.startTime = 0;
+      this.duration = 0;
+      this.spinning = false;
+      this.onComplete = null;
+    }
+    start(finalSymbolIndex, duration, startAt = 0){
+      // compute targetOffset such that chosen finalSymbolIndex sits at center
+      // choose targetPos somewhere in the later part of strip so we do several full cycles
+      const rotations = 3 + Math.floor(Math.random()*2); // 3..4 rotations
+      const targetPos = rotations * this.strip.length + this.findIndexForSymbol(finalSymbolIndex);
+      const symbolH = Math.round(reelH * 0.86);
+      this.startOffset = this.offset;
+      this.targetOffset = - targetPos * symbolH;
+      this.startTime = performance.now() + startAt;
+      this.duration = duration;
+      this.spinning = true;
+      this.onCompleteCalled = false;
+    }
+    findIndexForSymbol(symIndex){
+      // pick an index in strip that will be the final symbol (try near end of the base strip)
+      // We'll pick one of the existing positions mod length, doesn't matter which
+      for (let k = this.strip.length - 1; k >= 0; k--){
+        if (this.strip[k] === symIndex) return k;
+      }
+      return 0;
+    }
+  }
+
+  const reels = [];
+  for (let i=0;i<REEL_COUNT;i++) reels.push(new Reel(i));
+
+  // ---------- particles ----------
   let particles = [];
   function emitParticle(x,y,intensity=1){
     particles.push({
-      x, y,
-      vx: (Math.random()-0.5)*(0.6 + intensity*1.6),
-      vy: (Math.random()-0.9)*(0.2 + intensity*0.8) - 0.6*intensity,
-      size: 1.5 + Math.random()*4*(0.6 + intensity*0.6),
-      alpha: (0.5 + Math.random()*0.2) * 0.9,
+      x,y,
+      vx: (Math.random()-0.5)*(0.6+intensity*1.6),
+      vy: (Math.random()-0.9)*(0.25+intensity*0.8) - 0.5*intensity,
+      size: 1.6 + Math.random()*4*(0.5+intensity*0.6),
+      alpha: 0.5 + Math.random()*0.2,
       born: performance.now()
     });
   }
-
-  function updateParticles(now){
-    sparksCtx.clearRect(0,0, width, height);
+  function updateParticles(){
+    sparksCtx.clearRect(0,0,W,H);
     sparksCtx.globalCompositeOperation = 'lighter';
     for (let i=particles.length-1;i>=0;i--){
       const p = particles[i];
@@ -168,7 +216,7 @@
       p.y += p.vy;
       p.alpha *= 0.96;
       p.size *= 0.97;
-      if (p.alpha < 0.02 || p.size < 0.35) { particles.splice(i,1); continue; }
+      if (p.alpha < 0.02 || p.size < 0.35){ particles.splice(i,1); continue; }
       const g = sparksCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(1, p.size*3));
       g.addColorStop(0, `rgba(170,200,255,${Math.min(1,p.alpha)})`);
       g.addColorStop(0.6, `rgba(170,200,255,${Math.max(0,p.alpha*0.45)})`);
@@ -181,229 +229,114 @@
     sparksCtx.globalCompositeOperation = 'source-over';
   }
 
-  // particle loop
-  let raf = null;
-  function startLoops(){
-    if (raf) return;
-    let last = performance.now();
-    function loop(now){
-      const t = now;
-      // draw reels
-      drawReels(t);
-      // update/draw particles
-      updateParticles(t);
-      raf = requestAnimationFrame(loop);
-    }
-    raf = requestAnimationFrame(loop);
-  }
-
-  // ---------- Reel model ----------
-  // each reel holds a circular list of symbol indices; offset is in px
-  class Reel {
-    constructor(index){
-      this.index = index;
-      // create random stripe (longer than display so wrapping is smooth)
-      this.strip = [];
-      for (let i=0;i<SYMBOLS.length*6;i++) this.strip.push(Math.floor(Math.random()*SYMBOLS.length));
-      this.offset = 0; // px, positive = symbols moving down (visual)
-      this.targetOffset = 0; // where to stop
-      this.spinning = false;
-      this.startTime = 0;
-      this.duration = 0;
-      this.onComplete = null;
-    }
-    startSpin(finalSymbolIndex, duration, startAt){
-      // compute how much to rotate: choose rotations count such that final aligns center
-      // symbolHeight unknown now, compute at draw time; store intended finalSymbolIndex and duration
-      this.finalIndex = finalSymbolIndex;
-      this.duration = duration;
-      this.startTime = performance.now() + (startAt||0);
-      this.spinning = true;
-      this.onCompleteCalled = false;
-      // schedule: compute targetOffset in startSpinResolve step during animation after we know symbolHeight
-    }
-    stopNow(){
-      this.spinning = false;
-    }
-  }
-
-  const reels = [];
-  for (let i=0;i<REEL_COUNT;i++) reels.push(new Reel(i));
-
-  // ---------- Easing ----------
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function easeOutQuad(t){ return 1 - (1-t)*(1-t); }
-
-  // ---------- Drawing reels ----------
-  let lastDraw = 0;
-  function drawReels(now){
-    // ensure geometry
-    const rect = reelArea.getBoundingClientRect();
-    if (width !== rect.width || height !== rect.height) { resizeCanvases(); }
-
-    reelsCtx.clearRect(0,0,width,height);
-    // compute symbol height relative to reelH, choose symbolHeight = reelH * 0.92
-    const symbolH = Math.round(reelH * 0.92);
-    const centerY = height/2;
-
-    // for each reel
-    for (let ri=0; ri<REEL_COUNT; ri++){
+  // ---------- drawing ----------
+  function draw(){
+    reelsCtx.clearRect(0,0,W,H);
+    const symbolH = Math.round(reelH * 0.86);
+    const centerY = H/2;
+    for (let ri=0;ri<REEL_COUNT;ri++){
       const r = reels[ri];
       const x = reelX[ri];
-      const cx = x + reelW/2;
-
-      // if spin just started and we need to compute targetOffset (now that symbolH known)
-      if (r.spinning && !r._targetComputed && r.startTime <= now){
-        // find current top index stable: use current offset modulo strip length
-        const rotations = 3 + Math.floor(Math.random()*3); // full rotations
-        // final placement: choose index in strip such that symbol centers on reel center
-        // pick position in strip where symbol equals finalIndex, or just use a random position then set value
-        // We'll pick a random position near end and set that element to finalIndex
-        const targetPos = r.strip.length*2 + Math.floor(Math.random()*SYMBOLS.length);
-        // ensure strip long enough by pushing copies
-        while (r.strip.length < targetPos + 4) r.strip = r.strip.concat(r.strip);
-        r.strip[targetPos] = r.finalIndex % SYMBOLS.length;
-        // compute targetOffset: we want strip index `targetPos` to be centered -> offset such that that symbol vertical pos == centerY
-        // offset increases downward; base offset positions symbol i at y = centerY + (i*symbolH) + offset
-        // So set targetOffset so that center of that symbol is at centerY -> (centerY + (targetPos*symbolH) + targetOffset = centerY) => targetOffset = -targetPos*symbolH
-        // But add extra full rotations (so visual travel)
-        const extra = rotations * symbolH * SYMBOLS.length;
-        r.targetOffset = -targetPos * symbolH - extra;
-        // save initialOffset to animate from
-        r.initialOffset = r.offset || 0;
-        r._targetComputed = true;
-      }
-
-      // update offset if spinning
-      if (r.spinning){
-        if (now < r.startTime){
-          // haven't started yet
-        } else {
-          const t = Math.min(1, (now - r.startTime) / r.duration);
-          const eased = easeOutCubic(t);
-          // animate from initialOffset to targetOffset
-          if (r._targetComputed){
-            r.offset = r.initialOffset + (r.targetOffset - r.initialOffset) * eased;
-          } else {
-            // fallback: just increment offset quickly until target computed
-            r.offset -= 18; // fast fake spin (px per frame)
-          }
-          // when finished
-          if (t >= 1 && !r.onCompleteCalled){
-            r.spinning = false;
-            r.onCompleteCalled = true;
-            // normalize offset into strip range to keep numbers small
-            // compute effective index at center
-            const centerIndexFloat = -Math.round(r.offset / symbolH);
-            const modIndex = ((centerIndexFloat % r.strip.length) + r.strip.length) % r.strip.length;
-            // shift strip array so that modIndex is at position 0 for stable future spins (reduce offset to nearest)
-            // but to keep consistent behavior we will keep offsets small by adding multiples of symbolH
-            r.offset = r.offset % (r.strip.length * symbolH);
-            if (r.onComplete) r.onComplete();
-          }
-        }
-      }
-
-      // compute current motion blur for this reel: if spinning and (now - startTime) < BASE_SPIN_DURATION -> progressive blur
+      // compute motionBlur for this reel
       let motionBlur = 0;
-      if (r.spinning && now >= r.startTime){
-        const elapsed = Math.max(0, now - r.startTime);
-        const phase = Math.min(1, elapsed / BASE_SPIN_DURATION);
+      if (r.spinning && performance.now() >= r.startTime){
+        const elapsed = Math.max(0, performance.now() - r.startTime);
+        const phase = Math.min(1, elapsed / MOTION_BLUR_MS);
         motionBlur = (1 - phase) * MAX_MOTION_BLUR;
       }
-
-      // draw reel background rounded
+      // clip area for reel
       reelsCtx.save();
-      // clip to rounded rect for each reel
-      roundRect(reelsCtx, x, (height - reelH)/2, reelW, reelH, 14);
-      reelsCtx.clip();
+      roundRectClip(reelsCtx, x, (H - reelH)/2, reelW, reelH, 12);
 
-      // draw stripe of symbols near center: draw enough symbols to cover visible area (+ extra)
-      // We'll draw symbols from index start = floor(-offset/symbolH) - 3 to +3
-      const startIndex = Math.floor(-r.offset / symbolH) - 3;
-      for (let si = startIndex; si < startIndex + 12; si++){
+      // which symbol indices to draw: compute start index based on offset
+      const startSi = Math.floor(-r.offset / symbolH) - 3;
+      const drawCount = 12;
+      for (let si = startSi; si < startSi + drawCount; si++){
+        // map si to strip index
         const idx = ((si % r.strip.length) + r.strip.length) % r.strip.length;
-        const sym = SYMBOLS[r.strip[idx]];
-        // y center for this symbol:
+        const symIndex = r.strip[idx];
+        const sym = SYMBOLS[symIndex];
+        if (!sym || !sym.img) continue;
+        // center position for this symbol
         const yCenter = centerY + (si * symbolH) + r.offset;
-        // if outside visible band, skip
-        if (yCenter < (height - reelH)/2 - symbolH || yCenter > (height + reelH)/2 + symbolH) continue;
-        // compute depth/progress (1 center -> 0 far)
+        // skip if far outside
+        const topClip = (H - reelH)/2 - symbolH;
+        const bottomClip = (H + reelH)/2 + symbolH;
+        if (yCenter < topClip || yCenter > bottomClip) continue;
+        // perspective parameters
         const dist = Math.abs(yCenter - centerY);
         const maxDist = reelH * 0.9;
-        const progress = Math.max(0, 1 - dist / maxDist); // 0..1
-        const scale = SYMBOL_SCALE_FAR + (SYMBOL_SCALE_NEAR - SYMBOL_SCALE_FAR) * progress;
+        const progress = Math.max(0, 1 - dist / maxDist); // 0 far, 1 center
+        const scale = 0.72 + 0.28 * progress;
         const brightness = 0.72 + 0.28 * progress;
-        const blur = (1 - progress) * 3; // px base blur for perspective
+        const baseBlur = (1 - progress) * 3;
+        const totalBlur = baseBlur + motionBlur;
         const alpha = 0.5 + 0.5 * progress;
-
-        // apply additional motion blur while spinning
-        const totalBlur = blur + motionBlur;
-
-        // draw with canvas transforms
-        const img = sym.img;
+        // draw size and position
         const drawW = reelW * 0.78 * scale;
-        const drawH = symbolH * 0.88 * scale;
-        const drawX = x + reelW/2 - drawW/2;
+        const drawH = symbolH * 0.86 * scale;
+        const drawX = x + (reelW - drawW)/2;
         const drawY = yCenter - drawH/2;
-
+        // apply filter and draw
         reelsCtx.save();
-        // central fade/brightness and blur via ctx.filter
-        // note: order: blur then brightness
-        const filterParts = [];
-        if (totalBlur > 0.3) filterParts.push(`blur(${totalBlur.toFixed(2)}px)`);
-        filterParts.push(`brightness(${brightness.toFixed(3)})`);
-        reelsCtx.filter = filterParts.join(' ');
-        reelsCtx.globalAlpha = Math.min(1, Math.max(0.14, alpha));
-        // subtle scale via drawImage
+        const filters = [];
+        if (totalBlur > 0.3) filters.push(`blur(${totalBlur.toFixed(2)}px)`);
+        filters.push(`brightness(${brightness.toFixed(3)})`);
+        reelsCtx.filter = filters.join(' ');
+        reelsCtx.globalAlpha = Math.min(1, Math.max(0.12, alpha));
         try {
-          reelsCtx.drawImage(img, drawX, drawY, drawW, drawH);
+          reelsCtx.drawImage(sym.img, drawX, drawY, drawW, drawH);
         } catch(e){
-          // if image not ready: draw placeholder rect
           reelsCtx.fillStyle = 'rgba(255,255,255,0.04)';
           reelsCtx.fillRect(drawX, drawY, drawW, drawH);
         }
         reelsCtx.restore();
       }
-      // restore clip
+      // outline
       reelsCtx.restore();
-
-      // draw faint frame around reel
       reelsCtx.save();
       reelsCtx.strokeStyle = 'rgba(255,255,255,0.03)';
       reelsCtx.lineWidth = 1;
-      roundRect(reelsCtx, x, (height - reelH)/2, reelW, reelH, 14);
-      reelsCtx.stroke();
+      roundRectStroke(reelsCtx, x, (H - reelH)/2, reelW, reelH, 12);
       reelsCtx.restore();
     }
-
-    lastDraw = now;
+    // update particles on sparks canvas
+    updateParticles();
+    requestAnimationFrame(draw);
   }
 
-  // utility to draw round rect for clip/frame
-  function roundRect(ctx, x, y, w, h, r){
+  function roundRectClip(ctx,x,y,w,h,r){
     ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
     ctx.closePath();
+    ctx.clip();
+  }
+  function roundRectStroke(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+    ctx.stroke();
   }
 
-  // ---------- Spin orchestration ----------
+  // ---------- spin logic ----------
   function generateResult(){
-    // same probabilities as before
-    const res = [];
     const chance = Math.random()*100;
     if (chance <= 1){
-      const sym = Math.floor(Math.random()*SYMBOLS.length);
-      return [sym,sym,sym];
+      const s = Math.floor(Math.random()*SYMBOLS.length);
+      return [s,s,s];
     } else if (chance <= 21){
       const s1 = Math.floor(Math.random()*SYMBOLS.length);
       let s2;
       do { s2 = Math.floor(Math.random()*SYMBOLS.length); } while (s2 === s1);
-      if (Math.random()<0.5) return [s1,s1,s2]; else return [s1,s2,s1];
+      if (Math.random() < 0.5) return [s1,s1,s2]; else return [s1,s2,s1];
     } else {
       const arr = [];
       while (arr.length < 3){
@@ -414,12 +347,19 @@
     }
   }
 
-  let spinningFlag = false;
+  function normalizeOffset(offset, totalH){
+    // bring offset into [-totalH, 0)
+    let v = offset % totalH;
+    if (v > 0) v -= totalH;
+    return v;
+  }
+
+  let isSpinning = false;
 
   async function doSpin(){
-    if (spinningFlag) return;
+    if (isSpinning) return;
     if (currentBalance < STAKE){ setMessage('Недостаточно средств!',2000); return; }
-    spinningFlag = true;
+    isSpinning = true;
     spinBtn.disabled = true;
     setMessage('');
     currentBalance -= STAKE;
@@ -428,147 +368,142 @@
 
     const result = generateResult();
 
-    // notify Telegram (as before)
-    if (window.Telegram && Telegram.WebApp){
-      try{ Telegram.WebApp.sendData(JSON.stringify({action:'start_game'})); }catch(e){}
-    }
-
-    // schedule each reel spin with stagger
+    // start each reel with different durations so they stop sequentially
     const now = performance.now();
     const promises = [];
     for (let i=0;i<REEL_COUNT;i++){
-      const reel = reels[i];
-      // assign final symbol index
-      const finalIndex = result[i];
-      // choose duration: base plus small extra per reel
-      const duration = BASE_SPIN_DURATION + i * STAGGER; // reel0:1500, reel1:1760, reel2:2020...
-      // choose a starting delay so reels start at same time but end staggered (start earlier shorter reel?)
-      const delay = 0; // we animate stopping later by duration differences
-      reel.startSpin(finalIndex, duration, delay);
-      // attach promise to be resolved when reel finishes
-      promises.push(new Promise(res=>{
-        reel.onComplete = () => {
-          // emit final particles and small sound
-          emitSparksForReel(i, 10);
-          playSafe(clickSound);
-          res();
-        };
+      const r = reels[i];
+      const finalSym = result[i];
+      const duration = BASE_SPIN_DURATION + i * STAGGER;
+      const startAt = 0; // can add small start delay if wanted
+      r.start(finalSym, duration, startAt);
+      promises.push(new Promise(resolve => {
+        r._resolve = resolve;
       }));
     }
 
-    // also create ticking small particles and click sounds while at least one reel spinning
-    const ticker = setInterval(()=>{
-      // find spinning reels and emit small particles
+    // while at least one reel spinning, emit periodic small particles & click
+    const tick = setInterval(()=> {
       for (let i=0;i<REEL_COUNT;i++){
         const r = reels[i];
         if (r.spinning && performance.now() >= r.startTime){
-          // emit small particles near reel center
           const rx = reelX[i] + reelW/2;
-          const ry = height/2;
-          for (let k=0;k<2;k++) emitParticle(rx + (Math.random()-0.5)*20, ry + (Math.random()-0.5)*20, 0.6);
+          const ry = H/2;
+          emitParticle(rx + (Math.random()-0.5)*20, ry + (Math.random()-0.5)*10, 0.6);
           try{ clickSound.currentTime = 0; clickSound.play().catch(()=>{}); }catch(e){}
         }
       }
-    }, CHANGE_INTERVAL);
+    }, 90);
 
-    // wait for all reels to complete (promises resolve when reel.onComplete triggers)
+    // monitor spin completion with an internal loop (not blocking main rAF)
+    const checkCompletion = setInterval(()=> {
+      const symbolH = Math.round(reelH * 0.86);
+      for (let i=0;i<REEL_COUNT;i++){
+        const r = reels[i];
+        if (r.spinning && performance.now() >= r.startTime){
+          const t = Math.min(1, (performance.now() - r.startTime) / r.duration);
+          const eased = EASE(t);
+          r.offset = r.startOffset + (r.targetOffset - r.startOffset) * eased;
+          if (t >= 1){
+            r.spinning = false;
+            // normalize offset to manageable value
+            const totalH = symbolH * r.strip.length;
+            r.offset = normalizeOffset(r.offset, totalH);
+            // mark resolved
+            if (r._resolve){ r._resolve(); r._resolve = null; }
+          }
+        }
+      }
+      // if all done, clear interval
+      if (reels.every(rr => !rr.spinning)){
+        clearInterval(checkCompletion);
+        clearInterval(tick);
+      }
+    }, 16);
+
+    // wait all promises
     await Promise.all(promises);
-    clearInterval(ticker);
 
-    // compute names for evaluation from final center indices
-    const names = reels.map((r, i)=>{
-      // compute center index:
-      const symbolH = Math.round(reelH * 0.92);
-      const centerIndex = -Math.round(r.offset / symbolH);
-      const idx = ((centerIndex % r.strip.length) + r.strip.length) % r.strip.length;
+    // compute visible center symbols
+    const names = reels.map(r => {
+      const symbolH = Math.round(reelH * 0.86);
+      const centerIndexFloat = - Math.round(r.offset / symbolH);
+      const idx = ((centerIndexFloat % r.strip.length) + r.strip.length) % r.strip.length;
       return SYMBOLS[r.strip[idx]].name;
     });
 
     // evaluate win
     const allEqual = names.every(v => v === names[0]);
     const anyPair = (names[0] === names[1]) || (names[1] === names[2]) || (names[0] === names[2]);
-    let change = 0, message='';
+    let change = 0, msg='';
     if (allEqual){
-      if (names[0] === 'gem'){ change = 1000; message='🎉 JACKPOT!'; playSafe(jackpotSound); }
-      else { change = 800; message='🔥 Большой выигрыш!'; playSafe(winSound); }
-    } else if (anyPair){ change = 200; message='😉 Почти — мелкий выигрыш'; playSafe(winSound); }
-    else { change = 0; message='🙁 Увы — попробуй ещё'; playSafe(loseSound); }
+      if (names[0] === 'gem'){ change = 1000; msg='🎉 JACKPOT!'; playSafe(jackpotSound); }
+      else { change = 800; msg='🔥 Большой выигрыш!'; playSafe(winSound); }
+    } else if (anyPair){ change = 200; msg='😉 Почти — мелкий выигрыш'; playSafe(winSound); }
+    else { change = 0; msg='🙁 Увы — попробуй ещё'; playSafe(loseSound); }
 
-    if (change>0){ flashBackground(); highlightWinningReels(names); }
+    if (change > 0){ flashBackground(); highlightWinningReels(names); }
     currentBalance += change;
     balValueEl.textContent = currentBalance;
     saveBalance();
-    setMessage(message,2400);
+    setMessage(msg,2400);
 
-    // notify bot about result
+    // notify bot
     if (window.Telegram && Telegram.WebApp){
-      try {
+      try{
         Telegram.WebApp.sendData(JSON.stringify({ action:'slot_result', result: names.join(','), change: (change - STAKE) }));
       } catch(e){}
     }
 
-    spinningFlag = false;
+    isSpinning = false;
     spinBtn.disabled = false;
   }
 
-  // emit burst for reel index
-  function emitSparksForReel(reelIndex, count=8){
-    const rx = reelX[reelIndex] + reelW/2;
-    const ry = height/2;
-    for (let i=0;i<count;i++) emitParticle(rx + (Math.random()-0.5)*30, ry + (Math.random()-0.5)*30, 0.9 + Math.random()*0.6);
+  // visual helpers used on win
+  function flashBackground(){
+    const orig = document.body.style.background;
+    document.body.style.transition = 'background 600ms ease';
+    document.body.style.background = 'linear-gradient(180deg, rgba(20,40,70,0.9), rgba(6,22,38,0.98))';
+    setTimeout(()=>{ document.body.style.background = orig || 'linear-gradient(180deg,var(--bg-a),var(--bg-b))'; }, 1200);
+  }
+  function highlightWinningReels(names){
+    // quick sparkle burst over winning reels
+    for (let i=0;i<REEL_COUNT;i++){
+      if (names.every(n=>n===names[0]) || names.filter(x=>x===names[i]).length>1){
+        const cx = reelX[i] + reelW/2;
+        const cy = H/2;
+        for (let k=0;k<24;k++) emitParticle(cx + (Math.random()-0.5)*40, cy + (Math.random()-0.5)*30, 1.0 + Math.random()*0.6);
+      }
+    }
   }
 
-  // ---------- balance local ----------
+  // ---------- balance storage ----------
   let currentBalance = parseInt(localStorage.getItem('rc_balance')) || 1000;
   balValueEl.textContent = currentBalance;
   function saveBalance(){ localStorage.setItem('rc_balance', String(currentBalance)); }
   function setMessage(text, timeout=2200){ messageEl.textContent = text; if (timeout>0) setTimeout(()=> messageEl.textContent='Готово — нажми SPIN', timeout); }
 
-  // ---------- utility ----------
-  function playSafe(audio){ try{ audio.currentTime=0; audio.play().catch(()=>{}); }catch(e){} }
-  function flashBackground(){ const orig=document.body.style.background; document.body.style.transition='background 600ms ease'; document.body.style.background='linear-gradient(180deg, rgba(20,40,70,0.9), rgba(6,22,38,0.98))'; setTimeout(()=>{ document.body.style.background=orig||'linear-gradient(180deg,var(--bg-a),var(--bg-b))' },1200); }
-  function highlightWinningReels(names){
-    // simple visual: draw overlay flash on reels by temporarily drawing glow rectangles
-    for (let i=0;i<REEL_COUNT;i++){
-      if (names.every(n=>n===names[0]) || names.filter(x=>x===names[i]).length>1){
-        // flash by drawing glow on sparks canvas briefly
-        const rx = reelX[i], ry = (height-reelH)/2, rw = reelW, rh = reelH;
-        const start = performance.now();
-        let glow = 1.0;
-        const id = setInterval(()=>{
-          // draw one translucent rect
-          sparksCtx.clearRect(0,0,width,height);
-          sparksCtx.globalCompositeOperation='lighter';
-          sparksCtx.fillStyle = `rgba(120,190,255,${0.12 * glow})`;
-          roundRectFill(sparksCtx, rx, ry, rw, rh, 14);
-          sparksCtx.globalCompositeOperation='source-over';
-          glow -= 0.06;
-          if (glow<=0){ clearInterval(id); sparksCtx.clearRect(0,0,width,height); }
-        }, 40);
-      }
-    }
-  }
-  function roundRectFill(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fill(); }
+  // ---------- helper play */
+  function playSafe(audio){ try{ audio.currentTime = 0; audio.play().catch(()=>{}); }catch(e){} }
 
-  // ---------- init & start ----------
-  // initial canvas sizing
-  resizeCanvases();
-  // start loops
-  startLoops();
+  // ---------- init ----------
+  resizeCanvases(); // compute layout & size canvases
+  // start continuous draw loop
+  requestAnimationFrame(draw);
 
-  // wire spin button
-  spinBtn.addEventListener('click', ()=> { doSpin().catch(e=>{console.error(e);spinBtn.disabled=false;}) });
+  // wire button
+  spinBtn.addEventListener('click', ()=> { doSpin().catch(e=>{ console.error(e); spinBtn.disabled=false; isSpinning=false; }); });
 
-  // resize observer to recompute layout
-  const ro = new ResizeObserver(()=>{ computeLayout(); resizeCanvases(); });
+  // observe container (in case CSS changes) and resize
+  const ro = new ResizeObserver(()=> { resizeCanvases(); });
   ro.observe(reelArea);
 
   // Telegram WebApp ready
-  if (window.Telegram && Telegram.WebApp) {
-    try { Telegram.WebApp.ready(); Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" })); } catch(e){}
+  if (window.Telegram && Telegram.WebApp){
+    try{ Telegram.WebApp.ready(); Telegram.WebApp.sendData(JSON.stringify({ action: "start_game" })); }catch(e){}
   }
 
-  // Expose for debug (optional)
+  // expose for debug
   window._rc = { reels, SYMBOLS };
 
 })();

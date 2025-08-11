@@ -366,14 +366,16 @@ html, body, #reelArea {
       // glowRadius растёт с scaleFactor — плавное увеличение свечения
       const glowRadius = glowBase * (0.6 + 0.8 * scaleFactor);
 
-      // shadow strength / blur
-      ctx.shadowBlur = Math.max(12, glowRadius * 6.0);
+      // shadow strength / blur — небольшое усиление для тёмных тем учитывается ниже
+      // увеличил чуть-чуть множитель для увеличения радиуса свечения
+      ctx.shadowBlur = Math.max(12, glowRadius * 7.0);
       // более насыщенная тень по цвету
-      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, Math.min(0.95, 0.75 + 0.25 * scaleFactor));
+      ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, Math.min(0.98, 0.8 + 0.28 * scaleFactor));
       // тонкий stroke, но с большим shadowBlur даст заметное свечение вокруг
-      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.08);
-      ctx.lineWidth = Math.max(10, glowRadius * 0.85);
-      // используем фиксированный cornerRadius, как просил — большой, "почти квадратный"
+      // чуть усилил alpha и ширину строки
+      ctx.strokeStyle = hexOrColorWithAlpha(glowColorCss, 0.10);
+      ctx.lineWidth = Math.max(10, glowRadius * 0.95);
+      // используем фиксированный cornerRadius, почти квадратный
       const cornerRadius = 2;
       roundRectPath(ctx, -reelW/2, -reelH/2, reelW, reelH, cornerRadius);
       ctx.stroke();
@@ -618,8 +620,8 @@ html, body, #reelArea {
       document.documentElement.style.setProperty('--panel-bg', 'rgba(40,10,12,0.7)');
       document.documentElement.style.setProperty('--btn-a', '#e06a66');
       document.documentElement.style.setProperty('--btn-b', '#8b2f2f');
-      // почти чёрный красный
-      document.documentElement.style.setProperty('--glow-color', 'rgba(30,6,6,0.95)');
+      // почти чёрный красный, чуть насыщеннее
+      document.documentElement.style.setProperty('--glow-color', 'rgba(64,8,8,0.98)');
       document.documentElement.style.setProperty('--win-a', 'rgba(120,20,28,0.98)');
       document.documentElement.style.setProperty('--win-b', 'rgba(40,8,10,0.96)');
       document.documentElement.style.setProperty('--modal-a', '#2b0c0f');
@@ -631,8 +633,8 @@ html, body, #reelArea {
       document.documentElement.style.setProperty('--panel-bg', 'rgba(3,16,28,0.52)');
       document.documentElement.style.setProperty('--btn-a', '#91b7e7');
       document.documentElement.style.setProperty('--btn-b', '#2b5f91');
-      // почти чёрный синий
-      document.documentElement.style.setProperty('--glow-color', 'rgba(6,10,30,0.95)');
+      // почти чёрный синий, чуть насыщеннее
+      document.documentElement.style.setProperty('--glow-color', 'rgba(14,22,56,0.98)');
       document.documentElement.style.setProperty('--win-a', 'rgba(28,60,100,0.98)');
       document.documentElement.style.setProperty('--win-b', 'rgba(6,20,34,0.96)');
       document.documentElement.style.setProperty('--modal-a', 'rgba(6,12,22,0.98)');

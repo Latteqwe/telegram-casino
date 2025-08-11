@@ -364,10 +364,10 @@ html, body, #reelArea {
       const baseSize = Math.max(reelW, reelH);
       const glowBase = baseSize * 0.25; // финальный размер (можно менять)
       // glowRadius растёт с scaleFactor — плавное увеличение свечения
-      const glowRadius = glowBase * (0.6 + 0.8 * scaleFactor);
+      const glowRadius = glowBase * (1 + 1.2 * scaleFactor);
 
       // shadow strength / blur
-      ctx.shadowBlur = Math.max(12, glowRadius * 4.0);
+      ctx.shadowBlur = Math.max(12, glowRadius * 6.0);
       // более насыщенная тень по цвету
       ctx.shadowColor = hexOrColorWithAlpha(glowColorCss, Math.min(0.95, 0.75 + 0.25 * scaleFactor));
       // тонкий stroke, но с большим shadowBlur даст заметное свечение вокруг
@@ -733,6 +733,7 @@ html, body, #reelArea {
 </script>
 </body>
 </html>
+
 
 
 
